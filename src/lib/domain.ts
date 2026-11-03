@@ -1,9 +1,9 @@
 import { addDays, daysBetween } from "./utils";
-import type { EventItem, Metric, State, Task, TaskStatus } from "./types";
+import { COLUMNS, type Column, type EventItem, type Task } from "./types";
 
 /* ---------- Eventos recurrentes (se calculan, no se guardan por año) ---------- */
 
-/** Todas las fechas (YYYY-MM-DD) en que ocurre el evento dentro de [from, to]. */
+/** Fechas (YYYY-MM-DD) en que ocurre el evento dentro de [from, to]. */
 export function occurrences(e: EventItem, from: string, to: string): string[] {
   const start = e.start.slice(0, 10);
   const until = e.repeatUntil && e.repeatUntil < to ? e.repeatUntil : to;
@@ -40,9 +40,7 @@ export function occurrences(e: EventItem, from: string, to: string): string[] {
 }
 
 export function nextOccurrence(e: EventItem, today: string): string | null {
-  const horizon = addDays(today, 366 * 3);
-  const o = occurrences(e, today, horizon);
-  return o[0] ?? null;
+  return occurrences(e, today, addDays(today, 366 * 3))[0] ?? null;
 }
 
 export function upcomingEvents(events: EventItem[], today: string, days = 60) {
@@ -53,47 +51,40 @@ export function upcomingEvents(events: EventItem[], today: string, days = 60) {
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
-/* ---------- Tareas ---------- */
+/* ---------- Producción ---------- */
 
-// Criterio de avance (documentado en pantalla): cada estado vale un porcentaje fijo del recorrido de producción.
-export const STATUS_WEIGHT: Record<TaskStatus, number> = {
-  pendiente: 0, produccion: 25, entregado: 50, revision: 60, cambios: 40, aprobado: 80, programado: 90, publicado: 100, analizado: 100,
-};
-export const taskProgress = (t: Task) => {
-  const base = STATUS_WEIGHT[t.status];
+const weight = (c: Column) => COLUMNS.find((x) => x.id === c)!.weight;
+/** Avance de una tarjeta: el estado aporta la mayor parte y los pasos completados ajustan el resto. */
+export function taskProgress(t: Task) {
+  const base = t.changes ? 50 : weight(t.status);
   if (!t.checklist.length || base >= 100) return base;
   const done = t.checklist.filter((c) => c.done).length / t.checklist.length;
-  return Math.round(base * 0.7 + done * 30 * (base ? 1 : 0.5));
+  return Math.min(99, Math.round(base * 0.75 + done * 25 * (base ? 1 : 0.4)));
+}
+export const isDone = (t: Task) => t.status === "aprobado" || t.status === "publicado";
+export const isOpen = (t: Task) => t.status !== "publicado";
+export const isOverdue = (t: Task, today: string) => !!t.due && t.due.slice(0, 10) < today && !isDone(t);
+
+/** Avance real de un periodo: tareas con entrega en el periodo que ya están aprobadas o publicadas. */
+export function periodProgress(tasks: Task[], from: string, to: string) {
+  const inRange = tasks.filter((t) => t.due && t.due.slice(0, 10) >= from && t.due.slice(0, 10) <= to);
+  const done = inRange.filter(isDone).length;
+  return { total: inRange.length, done, pct: inRange.length ? Math.round((done / inRange.length) * 100) : 0 };
+}
+
+export function weekRange(today: string) {
+  const dow = (new Date(today + "T00:00:00").getDay() + 6) % 7; // lunes = 0
+  const from = addDays(today, -dow);
+  return { from, to: addDays(from, 6) };
+}
+export const monthRange = (today: string) => {
+  const [y, m] = today.split("-").map(Number);
+  return { from: `${y}-${String(m).padStart(2, "0")}-01`, to: `${y}-${String(m).padStart(2, "0")}-${String(new Date(y, m, 0).getDate()).padStart(2, "0")}` };
 };
-export const isOverdue = (t: Task, today: string) => !!t.due && t.due.slice(0, 10) < today && !["publicado", "analizado", "aprobado", "programado"].includes(t.status);
-export const avgProgress = (ts: Task[]) => (ts.length ? Math.round(ts.reduce((a, t) => a + taskProgress(t), 0) / ts.length) : 0);
 
-/* ---------- Métricas ---------- */
-
-export type Totals = { spend: number; reach: number; views: number; interactions: number; clicks: number; messages: number; quotes: number; sales: number; salesAmount: number };
-export const emptyTotals = (): Totals => ({ spend: 0, reach: 0, views: 0, interactions: 0, clicks: 0, messages: 0, quotes: 0, sales: 0, salesAmount: 0 });
-export function totals(ms: Metric[]): Totals {
-  const t = emptyTotals();
-  for (const m of ms) for (const k of Object.keys(t) as (keyof Totals)[]) t[k] += m[k] || 0;
-  return t;
-}
-export const ratio = (a: number, b: number) => (b > 0 ? a / b : null);
-
-export function byProduct(s: State, ms: Metric[]) {
-  const map = new Map<string, Metric[]>();
-  for (const m of ms) { const k = m.productId ?? "—"; map.set(k, [...(map.get(k) ?? []), m]); }
-  return [...map.entries()].map(([id, list]) => ({ id, name: s.products.find((p) => p.id === id)?.name ?? "Sin producto", t: totals(list) }))
-    .sort((a, b) => b.t.quotes - a.t.quotes || b.t.messages - a.t.messages);
-}
-
-/* ---------- Simulador (supuestos explícitos) ---------- */
-
-export type Scenario = { name: string; cpm: number; ctr: number; msgRate: number; quoteRate: number; closeRate: number; ticket: number };
-export function project(budget: number, sc: Scenario) {
-  const impressions = (budget / sc.cpm) * 1000;
-  const clicks = impressions * sc.ctr;
-  const messages = clicks * sc.msgRate;
-  const quotes = messages * sc.quoteRate;
-  const sales = quotes * sc.closeRate;
-  return { impressions, clicks, messages, quotes, sales, revenue: sales * sc.ticket };
+/** Cumplimiento: de las tareas entregadas a revisión con fecha límite, cuántas llegaron a tiempo. */
+export function compliance(tasks: Task[]) {
+  const delivered = tasks.filter((t) => t.deliveredAt && t.due);
+  const onTime = delivered.filter((t) => t.deliveredAt!.slice(0, 10) <= t.due!.slice(0, 10)).length;
+  return { delivered: delivered.length, onTime, pct: delivered.length ? Math.round((onTime / delivered.length) * 100) : null };
 }

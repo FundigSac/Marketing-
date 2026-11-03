@@ -163,7 +163,8 @@ body {
   --fc-now-indicator-color: var(--brand);
   font-size: 0.85rem;
 }
-.fc .fc-toolbar-title { font-size: 1.15rem; font-weight: 600; text-transform: capitalize; }
+.fc .fc-toolbar-title { font-size: 1.15rem; font-weight: 600; }
+.fc .fc-toolbar-title::first-letter { text-transform: uppercase; }
 .fc .fc-button { background: var(--card); color: var(--foreground); border: 1px solid var(--border); box-shadow: none; text-transform: capitalize; border-radius: var(--radius-md); }
 .fc .fc-button:hover { background: var(--accent); }
 .fc .fc-button-primary:not(:disabled).fc-button-active, .fc .fc-button-primary:not(:disabled):active { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }

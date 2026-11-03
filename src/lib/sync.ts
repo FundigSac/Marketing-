@@ -27,7 +27,11 @@ export async function startRemoteSync(): Promise<{ ok: boolean; error?: string }
   if (!sess.session) return { ok: false, error: "Sin sesión" };
   const { data, error } = await sb.from("workspace_state").select("data").eq("id", ROW).maybeSingle();
   if (error) return { ok: false, error: error.message };
-  if (data?.data) replaceState(data.data as State);
+  if (data?.data) {
+    // Antes de reemplazar datos de la versión anterior, deja una copia de seguridad en la base.
+    if ((data.data as { version?: number }).version === 2) await sb.from("workspace_state").upsert({ id: "main-v2-backup", data: data.data });
+    replaceState(data.data as State);
+  }
   else await sb.from("workspace_state").upsert({ id: ROW, data: getState() });
   setRemoteSave(async (s) => { await sb.from("workspace_state").upsert({ id: ROW, data: s, updated_at: new Date().toISOString() }); });
   return { ok: true };

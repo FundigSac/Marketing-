@@ -1,7 +1,6 @@
 "use client";
 
-import { animate, motion, useInView, useMotionValue, useTransform } from "motion/react";
-import { useEffect, useRef } from "react";
+import { motion } from "motion/react";
 import type { LucideIcon } from "lucide-react";
 import { Card, Skeleton } from "./primitives";
 import { cn } from "@/lib/utils";
@@ -31,13 +30,9 @@ export function EmptyState({ icon: Icon, title, text, action }: { icon: LucideIc
   );
 }
 
+/** Número con entrada suave. El valor real se muestra siempre (sin contar desde cero) para no confundir. */
 export function CountUp({ value, format }: { value: number; format?: (n: number) => string }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true });
-  const mv = useMotionValue(0);
-  const text = useTransform(mv, (v) => (format ? format(v) : Math.round(v).toString()));
-  useEffect(() => { if (inView) { const c = animate(mv, value, { duration: 0.9, ease: [0.22, 1, 0.36, 1] }); return () => c.stop(); } }, [inView, value, mv]);
-  return <motion.span ref={ref}>{text}</motion.span>;
+  return <motion.span initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>{format ? format(value) : Math.round(value).toString()}</motion.span>;
 }
 
 export function StatCard({ label, value, icon: Icon, tone = "primary", format, sub, href }: {
@@ -88,6 +83,20 @@ export function Md({ text, className }: { text: string; className?: string }) {
   });
   flush();
   return <div className={cn("space-y-1.5 text-sm leading-relaxed", className)}>{out}</div>;
+}
+
+/** Anillo de progreso (SVG) con animación de entrada. */
+export function Ring({ pct, size = 92, stroke = 9, tone = "var(--brand)", children }: { pct: number; size?: number; stroke?: number; tone?: string; children?: React.ReactNode }) {
+  const r = (size - stroke) / 2, c = 2 * Math.PI * r;
+  return (
+    <div className="relative grid place-items-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90" aria-hidden>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--muted)" strokeWidth={stroke} />
+        <motion.circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={tone} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={c} initial={{ strokeDashoffset: c }} animate={{ strokeDashoffset: c * (1 - Math.max(0, Math.min(100, pct)) / 100) }} transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }} />
+      </svg>
+      <div className="absolute inset-0 grid place-items-center text-center">{children}</div>
+    </div>
+  );
 }
 
 export function PageSkeleton() {

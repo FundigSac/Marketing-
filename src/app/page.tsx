@@ -1,121 +1,150 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { AlertTriangle, CalendarClock, Film, Lightbulb, ListChecks, Megaphone, MessageSquareQuote, Sparkles, UserRound } from "lucide-react";
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Progress } from "@/components/ui/primitives";
-import { EmptyState, Item, PageHeader, PageSkeleton, Stagger, StatCard } from "@/components/ui/blocks";
-import { useStore } from "@/lib/store";
-import { avgProgress, isOverdue, totals, upcomingEvents } from "@/lib/domain";
-import { deriveAlerts } from "@/lib/alerts";
-import { AiBox } from "@/components/ai-box";
-import { EVENT_CATEGORIES } from "@/lib/types";
-import { fmtDate, NUM, todayLima } from "@/lib/utils";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { motion } from "motion/react";
+import { CalendarClock, CalendarPlus, Clapperboard, Heart, Plus, Sparkles, Wand2 } from "lucide-react";
+import { Badge, Button, Card, Dialog, DialogContent, Progress } from "@/components/ui/primitives";
+import { EmptyState, Item, PageSkeleton, Ring, Stagger } from "@/components/ui/blocks";
+import { IdeaActions } from "@/components/idea-actions";
+import { TaskDialog } from "@/components/task-dialog";
+import { generateIdeas } from "@/lib/actions";
+import { isOverdue, monthRange, periodProgress, taskProgress, upcomingEvents, weekRange } from "@/lib/domain";
+import { update, useMe } from "@/lib/store";
+import { COLUMNS, EVENT_CATEGORIES } from "@/lib/types";
+import { daysBetween, fmtDate, todayLima } from "@/lib/utils";
 
-export default function Dashboard() {
-  const { s, ready } = useStore();
+function greeting() {
+  const h = Number(new Intl.DateTimeFormat("en-GB", { timeZone: "America/Lima", hour: "2-digit", hour12: false }).format(new Date())) % 24;
+  return h < 12 ? "Buenos días" : h < 19 ? "Buenas tardes" : "Buenas noches";
+}
+
+export default function Inicio() {
+  const { s, me, ready } = useMe();
+  const router = useRouter();
+  const [busy, setBusy] = useState("");
+  const [taskOpen, setTaskOpen] = useState(false);
+  const [create, setCreate] = useState(false);
   const today = todayLima();
 
   const d = useMemo(() => {
     if (!ready) return null;
-    const open = s.tasks.filter((t) => !["publicado", "analizado"].includes(t.status));
-    const fab = s.users.find((u) => u.name === "Fabrizio");
-    const fabTasks = s.tasks.filter((t) => t.assigneeId === fab?.id && !["publicado", "analizado"].includes(t.status));
-    const days = [...new Set(s.metrics.map((m) => m.date))].sort().slice(-14);
+    const dates = upcomingEvents(s.events, today, 60).filter((u) => u.e.category !== "publicacion" && (u.e.relevance !== "baja" || u.in <= 14)).slice(0, 4);
+    const soonIds = new Set(dates.map((x) => x.e.id));
+    const pool = s.ideas.filter((i) => (i.status === "nueva" || i.status === "elegida" || i.favorite) && i.status !== "descartada" && i.status !== "en_produccion");
+    const ideas = [...pool].sort((a, b) => Number(soonIds.has(b.eventId ?? "")) - Number(soonIds.has(a.eventId ?? "")) || Number(b.favorite) - Number(a.favorite) || b.createdAt.localeCompare(a.createdAt)).slice(0, 3);
+    const open = s.tasks.filter((t) => t.status !== "publicado");
     return {
-      open, fab, fabTasks,
-      overdue: open.filter((t) => isOverdue(t, today)),
-      upcoming: upcomingEvents(s.events, today, 45).slice(0, 6),
-      videos: s.videos.filter((v) => v.status !== "aprobado"),
-      active: s.campaigns.filter((c) => c.status === "activa"),
-      tot: totals(s.metrics),
-      chart: days.map((day) => ({ d: day.slice(5), Mensajes: s.metrics.filter((m) => m.date === day).reduce((a, m) => a + m.messages, 0), Cotizaciones: s.metrics.filter((m) => m.date === day).reduce((a, m) => a + m.quotes, 0) })),
-      alerts: deriveAlerts(s, today).slice(0, 5),
-      ideas: s.ideas.filter((i) => i.status === "propuesta").slice(0, 3),
+      dates, ideas,
+      pending: [...open].sort((a, b) => (a.due ?? "9999").localeCompare(b.due ?? "9999")).slice(0, 5),
+      pendingCount: open.length,
+      week: periodProgress(s.tasks, weekRange(today).from, weekRange(today).to),
+      month: periodProgress(s.tasks, monthRange(today).from, monthRange(today).to),
     };
   }, [s, ready, today]);
+  if (!d || !me) return <PageSkeleton />;
 
-  if (!d) return <PageSkeleton />;
+  const next = d.dates[0];
+  const ideasForNext = next ? s.ideas.filter((i) => i.eventId === next.e.id && i.status !== "descartada").length : 0;
+  const total = ideasForNext || d.ideas.length;
+  const overdue = s.tasks.filter((t) => isOverdue(t, today)).length;
+  const line = overdue
+    ? `Tienes ${overdue} entrega${overdue > 1 ? "s" : ""} atrasada${overdue > 1 ? "s" : ""}. Empecemos por ahí.`
+    : next
+      ? `Se acerca una fecha importante (${next.e.title}, ${next.in === 0 ? "hoy" : `en ${next.in} ${next.in === 1 ? "día" : "días"}`}) y ${total ? `tengo ${total} ${total === 1 ? "idea" : "ideas"} de videos para FUNDIGSAC.` : "puedo prepararte ideas de videos para FUNDIGSAC."}`
+      : total ? `Tengo ${total} ideas de videos para FUNDIGSAC.` : "Pide ideas a la IA o planifica una fecha en el calendario.";
 
-  const hello = new Intl.DateTimeFormat("es-PE", { dateStyle: "full", timeZone: "America/Lima" }).format(new Date());
+  const ask = async (eventId?: string) => {
+    setBusy(eventId ?? "gen"); setCreate(false);
+    const r = await generateIdeas(s, { count: s.prefs.ideasPerDay, eventId });
+    setBusy("");
+    r.ok ? toast.success(`${r.n} ideas nuevas${r.note ? ` · ${r.note}` : ""}`) : toast.error(r.error);
+  };
+  const fav = (id: string) => update((x) => { const i = x.ideas.find((q) => q.id === id)!; i.favorite = !i.favorite; });
+  const longDate = new Intl.DateTimeFormat("es-PE", { dateStyle: "full", timeZone: "America/Lima" }).format(new Date());
 
   return (
     <>
-      <PageHeader eyebrow="Centro de operaciones" title="Buen día, equipo FUNDIGSAC" hint={hello.charAt(0).toUpperCase() + hello.slice(1)}
-        actions={<><Button variant="outline" asChild><Link href="/eventos/nuevo">Nuevo evento</Link></Button><Button variant="brand" asChild><Link href="/ia/ideas"><Sparkles />Ideas de hoy</Link></Button></>} />
+      <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }} className="liquid relative mb-4 overflow-hidden rounded-2xl p-5 md:p-6">
+        <div aria-hidden className="pointer-events-none absolute -right-16 -top-24 size-64 rounded-full bg-brand/15 blur-3xl" />
+        <div aria-hidden className="pointer-events-none absolute -bottom-24 left-1/3 size-64 rounded-full bg-primary/15 blur-3xl" />
+        <div className="relative flex flex-wrap items-center justify-between gap-5">
+          <div className="min-w-0 max-w-xl">
+            <p className="text-xs text-muted-foreground">{longDate.charAt(0).toUpperCase() + longDate.slice(1)}</p>
+            <h1 className="mt-0.5 text-2xl font-semibold tracking-tight md:text-3xl">{greeting()}, {me.name.split(" ")[0]} <span aria-hidden>👋</span></h1>
+            <p className="mt-1.5 text-sm text-muted-foreground md:text-base">{line}</p>
+            <Button variant="brand" size="lg" className="mt-4" onClick={() => setCreate(true)}><Plus />Crear contenido</Button>
+          </div>
+          <div className="flex items-center gap-5 rounded-xl border border-border bg-card/70 px-5 py-3">
+            {([["Semana", d.week, "var(--brand)"], ["Mes", d.month, "var(--primary)"]] as const).map(([l, p, tone]) => (
+              <div key={l} className="flex items-center gap-3"><Ring pct={p.pct} size={64} stroke={7} tone={tone}><b className="text-sm tabular-nums">{p.total ? `${p.pct}%` : "—"}</b></Ring><div className="text-xs leading-tight"><b className="block text-sm">{l}</b><span className="text-muted-foreground">{p.total ? `${p.done}/${p.total} aprobados` : "sin entregas"}</span></div></div>
+            ))}
+          </div>
+        </div>
+      </motion.section>
 
-      <Stagger className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-        <Item><StatCard label="Tareas abiertas" value={d.open.length} icon={ListChecks} href="/produccion/kanban" sub={`${d.overdue.length} atrasadas`} tone={d.overdue.length ? "danger" : "primary"} /></Item>
-        <Item><StatCard label="Videos por revisar" value={d.videos.length} icon={Film} href="/produccion/videos" tone="brand" /></Item>
-        <Item><StatCard label="Campañas activas" value={d.active.length} icon={Megaphone} href="/campanas" sub={`${s.campaigns.length} en total`} /></Item>
-        <Item><StatCard label="Cotizaciones registradas" value={d.tot.quotes} icon={MessageSquareQuote} href="/metricas" tone="success" sub={`${NUM(d.tot.messages)} mensajes`} /></Item>
+      <Stagger className="grid gap-4 lg:grid-cols-12">
+        <Item className="lg:col-span-7">
+          <Card className="h-full p-4">
+            <div className="mb-3 flex items-center justify-between"><h2 className="flex items-center gap-2 text-sm font-semibold"><Sparkles className="size-4 text-brand" />Ideas recomendadas por la IA</h2><Link href="/ideas" className="text-xs text-primary hover:underline">Ver todas</Link></div>
+            {d.ideas.length === 0 ? <EmptyState icon={Sparkles} title="Aún no hay ideas" text="La IA propone 3 a 5 ideas por día según tus fechas y productos HDPE." action={<Button size="sm" variant="brand" onClick={() => ask()} disabled={busy === "gen"}><Wand2 />{busy === "gen" ? "Pensando…" : "Generar ideas"}</Button>} /> : (
+              <ul className="space-y-2.5">{d.ideas.map((i) => (
+                <li key={i.id} className="rounded-xl border border-border p-3.5 transition hover:shadow-[var(--shadow-md)]">
+                  <div className="flex items-start gap-3">
+                    <div className="min-w-0 flex-1">
+                      <Link href={`/ideas?idea=${i.id}`} className="line-clamp-1 font-medium hover:text-primary">{i.title}</Link>
+                      <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{i.concept}</p>
+                      <p className="mt-1.5 text-xs"><b>Por qué:</b> <span className="text-muted-foreground">{i.why}</span></p>
+                    </div>
+                    <button aria-label={i.favorite ? "Quitar de favoritas" : "Guardar como favorita"} aria-pressed={i.favorite} onClick={() => fav(i.id)} className={`rounded-md p-1.5 transition active:scale-90 ${i.favorite ? "text-brand" : "text-muted-foreground hover:text-foreground"}`}><Heart className={`size-4 ${i.favorite ? "fill-current" : ""}`} /></button>
+                  </div>
+                  <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2"><span className="flex gap-1.5"><Badge>{i.platform}</Badge><Badge>{i.duration}</Badge>{i.date && <Badge tone="primary">{fmtDate(i.date)}</Badge>}</span><IdeaActions idea={i} compact /></div>
+                </li>))}</ul>
+            )}
+          </Card>
+        </Item>
+
+        <div className="space-y-4 lg:col-span-5">
+          <Item>
+            <Card className="p-4">
+              <div className="mb-2 flex items-center justify-between"><h2 className="flex items-center gap-2 text-sm font-semibold"><CalendarClock className="size-4 text-brand" />Próximas fechas</h2><Link href="/calendario" className="text-xs text-primary hover:underline">Calendario</Link></div>
+              {d.dates.length === 0 ? <p className="py-4 text-center text-sm text-muted-foreground">Sin fechas próximas. Agrégalas en el calendario.</p> : (
+                <ul>{d.dates.map(({ e, date, in: n }) => { const c = s.ideas.filter((i) => i.eventId === e.id && i.status !== "descartada").length; return (
+                  <li key={e.id + date} className="flex items-center gap-3 rounded-lg p-1.5 transition hover:bg-accent">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-secondary text-center leading-none text-secondary-foreground"><b className="text-sm">{n}</b><span className="text-[9px]">{n === 1 ? "día" : "días"}</span></span>
+                    <div className="min-w-0 flex-1"><b className="block truncate text-sm">{e.title}</b><span className="text-xs text-muted-foreground">{fmtDate(date)} · {EVENT_CATEGORIES[e.category].label}</span></div>
+                    {c > 0 ? <Link href="/ideas" className="text-xs text-primary hover:underline">{c} ideas</Link> : <Button size="sm" variant="soft" onClick={() => ask(e.id)} disabled={busy === e.id}><Sparkles />{busy === e.id ? "…" : "Ideas"}</Button>}
+                  </li>); })}</ul>
+              )}
+            </Card>
+          </Item>
+          <Item>
+            <Card className="p-4">
+              <div className="mb-2 flex items-center justify-between"><h2 className="flex items-center gap-2 text-sm font-semibold"><Clapperboard className="size-4 text-brand" />Videos pendientes</h2><Link href="/videos" className="text-xs text-primary hover:underline">Mis videos</Link></div>
+              {d.pending.length === 0 ? <p className="py-4 text-center text-sm text-muted-foreground">Nada pendiente. Convierte una idea en video.</p> : (
+                <ul className="space-y-2.5">{d.pending.map((t) => { const n = t.due ? daysBetween(today, t.due) : null; return (
+                  <li key={t.id}><Link href={`/videos?tarea=${t.id}`} className="block rounded-lg p-1.5 transition hover:bg-accent"><div className="flex items-center justify-between gap-2 text-sm"><b className="truncate">{t.title}</b><Badge tone={n !== null && n < 0 ? "danger" : n !== null && n <= 3 ? "brand" : "neutral"}>{n === null ? "sin fecha" : n < 0 ? `atrasado ${-n} d` : n === 0 ? "entrega hoy" : `entrega ${fmtDate(t.due)}`}</Badge></div><div className="mt-1.5 flex items-center gap-2"><Progress value={taskProgress(t)} className="h-1.5" tone="brand" /><span className="whitespace-nowrap text-[11px] text-muted-foreground">{t.changes ? "con correcciones" : COLUMNS.find((c) => c.id === t.status)?.label}</span></div></Link></li>); })}
+                  {d.pendingCount > 5 && <li className="px-1.5 text-xs text-muted-foreground">y {d.pendingCount - 5} más en Mis videos…</li>}</ul>
+              )}
+            </Card>
+          </Item>
+        </div>
       </Stagger>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader><CardTitle className="flex items-center gap-2"><CalendarClock className="size-4 text-brand" />Próximas fechas</CardTitle><Link href="/calendario" className="text-xs text-primary hover:underline">Ver calendario</Link></CardHeader>
-          <CardContent>
-            {d.upcoming.length === 0 ? <EmptyState icon={CalendarClock} title="Sin fechas próximas" text="Agrega fechas importantes para planificar contenido con tiempo." /> : (
-              <ul className="divide-y divide-border">
-                {d.upcoming.map(({ e, date, in: n }) => (
-                  <li key={e.id + date}>
-                    <Link href={`/eventos/${e.id}`} className="group flex items-center gap-3 py-2.5">
-                      <span className="size-2.5 shrink-0 rounded-full" style={{ background: EVENT_CATEGORIES[e.category].color }} />
-                      <span className="min-w-0 flex-1"><b className="block truncate text-sm font-medium group-hover:text-primary">{e.title}</b><span className="text-xs text-muted-foreground">{EVENT_CATEGORIES[e.category].label} · {fmtDate(date)}</span></span>
-                      <Badge tone={n <= 3 ? "brand" : n <= 14 ? "primary" : "neutral"}>{n === 0 ? "Hoy" : `en ${n} d`}</Badge>
-                      <Badge tone={e.relevance === "alta" ? "success" : "neutral"}>{e.relevance}</Badge>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><UserRound className="size-4 text-brand" />Avance de Fabrizio</CardTitle><Link href="/produccion/fabrizio" className="text-xs text-primary hover:underline">Panel</Link></CardHeader>
-          <CardContent className="space-y-3">
-            {d.fabTasks.length === 0 ? <p className="text-sm text-muted-foreground">Sin tareas asignadas todavía.</p> : (
-              <>
-                <div><div className="mb-1 flex justify-between text-xs text-muted-foreground"><span>Avance promedio</span><b className="text-foreground">{avgProgress(d.fabTasks)}%</b></div><Progress value={avgProgress(d.fabTasks)} tone="brand" /></div>
-                <ul className="space-y-1.5 text-sm">{d.fabTasks.slice(0, 4).map((t) => <li key={t.id} className="flex justify-between gap-2"><Link href={`/produccion/tareas/${t.id}`} className="truncate hover:text-primary">{t.title}</Link>{isOverdue(t, today) && <Badge tone="danger">atrasada</Badge>}</li>)}</ul>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-2">
-          <CardHeader><CardTitle>Mensajes y cotizaciones (últimos días con datos)</CardTitle></CardHeader>
-          <CardContent>
-            {d.chart.length === 0 ? <EmptyState icon={Megaphone} title="Aún no hay resultados" text="Registra o importa métricas de una campaña para ver el rendimiento aquí." action={<Button variant="outline" size="sm" asChild><Link href="/metricas">Cargar métricas</Link></Button>} /> : (
-              <div className="h-56">
-                <ResponsiveContainer width="100%" height="100%"><BarChart data={d.chart}><CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} /><XAxis dataKey="d" fontSize={11} stroke="var(--muted-foreground)" /><YAxis fontSize={11} allowDecimals={false} stroke="var(--muted-foreground)" /><Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8 }} /><Bar dataKey="Mensajes" fill="var(--chart-1)" radius={[4, 4, 0, 0]} /><Bar dataKey="Cotizaciones" fill="var(--chart-4)" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><AlertTriangle className="size-4 text-brand" />Avisos</CardTitle><Link href="/notificaciones" className="text-xs text-primary hover:underline">Todos</Link></CardHeader>
-          <CardContent>
-            {d.alerts.length === 0 ? <p className="text-sm text-muted-foreground">Todo en orden por ahora.</p> : (
-              <ul className="space-y-2.5">{d.alerts.map((a) => <li key={a.id}><Link href={a.href} className="block rounded-md p-2 text-sm transition hover:bg-accent"><b className="flex items-center gap-2"><span className={`size-2 rounded-full ${a.level === "alta" ? "bg-destructive" : a.level === "media" ? "bg-brand" : "bg-primary"}`} />{a.title}</b><span className="text-xs text-muted-foreground">{a.body}</span></Link></li>)}</ul>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-2">
-          <CardHeader><CardTitle className="flex items-center gap-2"><Lightbulb className="size-4 text-brand" />Ideas por decidir</CardTitle><Link href="/ia/ideas" className="text-xs text-primary hover:underline">Centro de ideas</Link></CardHeader>
-          <CardContent>
-            {d.ideas.length === 0 ? <EmptyState icon={Lightbulb} title="Sin ideas pendientes" text="Pide ideas a la IA para las próximas fechas y productos prioritarios." action={<Button variant="brand" size="sm" asChild><Link href="/ia/ideas">Generar ideas</Link></Button>} /> : (
-              <div className="grid gap-3 sm:grid-cols-3">{d.ideas.map((i) => <Link key={i.id} href={`/ia/debate?idea=${i.id}`} className="rounded-lg border border-border p-3 text-sm transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]"><b className="line-clamp-2">{i.title}</b><span className="mt-1 block text-xs text-muted-foreground">{i.network} · {i.contentType}</span></Link>)}</div>
-            )}
-          </CardContent>
-        </Card>
-
-        <AiBox title="Resumen semanal con IA" hint="Claude Haiku resume tus datos reales: fechas, tareas, videos y campañas." button="Generar resumen" instruction="Elabora un resumen semanal de marketing: fechas próximas, avance de Fabrizio, tareas atrasadas, videos pendientes, campañas y prioridades recomendadas para esta semana. Usa solo los datos del contexto." />
-      </div>
+      <Dialog open={create} onOpenChange={setCreate}>
+        <DialogContent title="Crear contenido" description="¿Por dónde quieres empezar?">
+          <div className="grid gap-2.5 sm:grid-cols-3">
+            {[
+              { icon: Wand2, t: "Ideas con IA", d: `${s.prefs.ideasPerDay} ideas nuevas`, f: () => ask(), tone: "bg-brand/15 text-brand" },
+              { icon: Clapperboard, t: "Nuevo video", d: "Ya sé qué grabar", f: () => { setCreate(false); setTaskOpen(true); }, tone: "bg-secondary text-secondary-foreground" },
+              { icon: CalendarPlus, t: "Nueva fecha", d: "En el calendario", f: () => { setCreate(false); router.push("/calendario?nuevo=1"); }, tone: "bg-secondary text-secondary-foreground" },
+            ].map((o) => <button key={o.t} onClick={o.f} className="rounded-xl border border-border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]"><span className={`mb-3 grid size-9 place-items-center rounded-lg ${o.tone}`}><o.icon className="size-4" /></span><b className="block text-sm">{o.t}</b><span className="text-xs text-muted-foreground">{o.d}</span></button>)}
+          </div>
+        </DialogContent>
+      </Dialog>
+      <TaskDialog open={taskOpen} onOpenChange={setTaskOpen} />
     </>
   );
 }

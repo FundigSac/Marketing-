@@ -12,13 +12,11 @@ let history: Msg[] = []; // se conserva mientras navegas por el sitio
 
 // Capacidades del asistente (instrucciones fijas; los datos salen del contexto real de la app).
 const QUICK: { label: string; ask: string }[] = [
-  { label: "Resumen semanal", ask: "Elabora un resumen semanal de marketing: fechas próximas, avance del equipo, tareas atrasadas, videos pendientes, campañas y consultas." },
-  { label: "Prioridades de hoy", ask: "Recomienda las 5 prioridades para hoy y esta semana, ordenadas, con el motivo de cada una." },
-  { label: "Tareas vencidas", ask: "Identifica las tareas y entregables vencidos o por vencer, quién los tiene y qué acción concreta recomiendas." },
-  { label: "Avance de Fabrizio", ask: "Resume el avance de Fabrizio: qué desarrolla, qué debe entregar, videos pendientes, correcciones y atrasos." },
-  { label: "Comparar campañas", ask: "Compara las campañas con resultados registrados (costos, mensajes, cotizaciones, ventas) y dime cuál rinde mejor y qué datos faltan." },
-  { label: "Fechas de publicación", ask: "Sugiere fechas concretas para publicar según las fechas próximas, las ideas y la carga de trabajo. Explica el criterio." },
-  { label: "Datos de productos", ask: "Revisa la información de productos cargada: qué especificaciones, fotos o disponibilidad faltan por confirmar antes de promocionarlos." },
+  { label: "Mi plan de hoy", ask: "Arma mi plan de hoy: qué grabar, editar o entregar primero, según mis tareas, entregas y fechas próximas." },
+  { label: "Próximas fechas", ask: "¿Qué fechas importantes vienen y qué tipo de video conviene preparar para cada una? Sé concreto." },
+  { label: "Qué me falta entregar", ask: "Lista lo que debo entregar, qué está atrasado o por vencer y qué correcciones tengo pendientes." },
+  { label: "Mi avance", ask: "Resume mi avance de la semana y del mes con los datos reales de tareas." },
+  { label: "Revisar mis productos", ask: "Qué datos de productos faltan por confirmar antes de usarlos en un video." },
 ];
 
 export function AiAssistant({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
@@ -42,12 +40,12 @@ export function AiAssistant({ open, onOpenChange }: { open: boolean; onOpenChang
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent side title="Asistente de marketing" description="Claude Haiku 5.5 con los datos reales de la app. No inventa cifras: si falta un dato, lo dice." className="max-w-xl overflow-hidden">
+      <DialogContent side title="Copiloto creativo" description="Claude Haiku 5.5 con los datos reales de la app. No inventa cifras: si falta un dato, lo dice." className="max-w-xl overflow-hidden">
         <div className="flex flex-wrap gap-1.5">
           {QUICK.map((q) => <button key={q.label} disabled={busy} onClick={() => ask(q.ask)} className="rounded-full border border-border bg-card px-3 py-1 text-xs transition hover:bg-accent disabled:opacity-50"><Sparkles className="mr-1 inline size-3 text-brand" />{q.label}</button>)}
         </div>
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto rounded-lg border border-border bg-background p-3">
-          {msgs.length === 0 && <p className="text-sm text-muted-foreground">Elige una acción rápida o escribe tu pregunta. Puedo resumir avances, detectar atrasos, recomendar prioridades, comparar campañas, sugerir fechas y revisar los datos de productos.</p>}
+          {msgs.length === 0 && <p className="text-sm text-muted-foreground">Elige una acción rápida o escribe tu pregunta. Puedo armar tu plan del día, recordarte entregas, sugerir videos para las próximas fechas y revisar qué datos faltan.</p>}
           {msgs.map((m, i) => (
             <div key={i} className={`flex gap-2 ${m.role === "user" ? "justify-end" : ""}`}>
               {m.role === "ia" && <span className="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-secondary-foreground"><Bot className="size-4" /></span>}

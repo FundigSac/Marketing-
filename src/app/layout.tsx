@@ -7,9 +7,10 @@ import "./globals.css";
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "FUNDIGSAC Marketing OS",
-  description: "Centro de planificación, producción y resultados de marketing de FUNDIGSAC",
+  title: "FUNDIGSAC Marketing",
+  description: "Dashboard creativo para planificar, crear y organizar los videos de marketing de FUNDIGSAC",
   manifest: "/manifest.webmanifest",
+  icons: { icon: [{ url: "/icon-64.png", sizes: "64x64", type: "image/png" }, { url: "/icon-192.png", sizes: "192x192", type: "image/png" }], apple: "/icon-192.png" },
 };
 export const viewport: Viewport = { themeColor: "#194391" };
 

@@ -2,10 +2,12 @@
 
 import { useSyncExternalStore } from "react";
 import { seedState } from "./seed";
+import { toV3 } from "./migrate";
 import { nowLimaISO, uid } from "./utils";
 import type { State, User } from "./types";
 
-const KEY = "fundigsac-os-v2";
+const KEY = "fundigsac-os-v3";
+const OLD_KEY = "fundigsac-os-v2"; // datos de la versión anterior: se migran y NO se borran
 let state: State | null = null;
 const listeners = new Set<() => void>();
 let remoteSave: ((s: State) => void) | null = null;
@@ -15,8 +17,12 @@ function load(): State {
   if (state) return state;
   try {
     const raw = localStorage.getItem(KEY);
-    const parsed = raw ? JSON.parse(raw) : null;
-    state = parsed?.version === 2 ? ({ ...seedState(), ...parsed } as State) : seedState();
+    if (raw) state = toV3(JSON.parse(raw));
+    else {
+      const old = localStorage.getItem(OLD_KEY);
+      state = old ? toV3(JSON.parse(old)) : seedState();
+      if (old) { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} }
+    }
   } catch {
     state = seedState();
   }
@@ -44,14 +50,14 @@ export function update(fn: (s: State) => State | void, logText?: string) {
 }
 
 export function replaceState(s: State) {
-  state = { ...seedState(), ...s, version: 2 };
+  state = toV3(s);
   persist();
   listeners.forEach((l) => l());
 }
 export function setRemoteSave(fn: ((s: State) => void) | null) { remoteSave = fn; }
 export function getState() { return load(); }
 
-const EMPTY = { version: 2 } as unknown as State;
+const EMPTY = { version: 3 } as unknown as State;
 
 export function useStore() {
   const s = useSyncExternalStore(
