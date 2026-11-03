@@ -49,6 +49,15 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // Ideas del día: una tanda nueva (5 por defecto) cada mañana, con ángulos que rotan, aunque nadie abra la app.
+  let dailyMade: ReturnType<typeof toIdea>[] = [];
+  if (aiKey && s.prefs.autoDaily && s.ai.lastIdeasDay !== today) {
+    try {
+      const r = await askClaude({ apiKey: aiKey, task: "ideas", context: buildContext({ ...s, ideas: [...newIdeas, ...s.ideas] }), payload: { count: s.prefs.ideasPerDay || 5 } });
+      if (r.ok) { dailyMade = (r.data.ideas as AiIdea[]).map((a) => toIdea(s, a, "ia", undefined, today)); newIdeas.push(...dailyMade); generated += dailyMade.length; }
+    } catch { /* sin IA no hay tanda del día */ }
+  }
+
   const resendKey = process.env.RESEND_API_KEY;
   const resend = resendKey ? new Resend(resendKey) : null;
   const vapidPub = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY, vapidPriv = process.env.VAPID_PRIVATE_KEY;
@@ -74,6 +83,15 @@ export async function GET(req: NextRequest) {
       push = entry.status;
     }
     results.push({ key: n.key, email, push });
+  }
+
+  // Push de las ideas del día (una sola vez por día).
+  const dailyKey = `ideas-${today}`;
+  if (dailyMade.length && s.prefs.push && vapidPub && vapidPriv && s.prefs.pushSubs?.length && !log.some((l) => l.key === dailyKey && l.channel === "push" && l.status === "enviado")) {
+    let ok = 0, fail = 0;
+    const body = dailyMade.slice(0, 3).map((i) => i.title).join(" · ");
+    for (const sub of s.prefs.pushSubs) { try { await webpush.sendNotification(sub as webpush.PushSubscription, JSON.stringify({ title: `${dailyMade.length} ideas nuevas para hoy`, body, url: "/ideas" })); ok++; } catch { fail++; } }
+    log.push({ key: dailyKey, at: new Date().toISOString(), channel: "push", to: `${ok} dispositivo(s)`, status: ok ? "enviado" : "error", error: fail ? `${fail} fallaron` : undefined, attempts: 1 });
   }
 
   // Guarda solo ideas nuevas y el registro de envíos, sin pisar lo que el equipo cambió mientras tanto.

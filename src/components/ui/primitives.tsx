@@ -16,9 +16,9 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-[image:var(--grad-primary)] text-primary-foreground shadow-[0_8px_20px_-8px_color-mix(in_srgb,var(--primary)_80%,transparent)] hover:-translate-y-px hover:shadow-[0_12px_26px_-8px_color-mix(in_srgb,var(--primary)_85%,transparent)] shine",
-        brand: "bg-[image:var(--grad-brand)] text-white shadow-[0_10px_24px_-10px_rgba(255,106,0,0.85)] hover:-translate-y-px hover:shadow-[0_14px_30px_-10px_rgba(255,106,0,0.9)] shine",
-        outline: "border border-border bg-card shadow-[var(--shadow-sm)] hover:-translate-y-px hover:bg-accent hover:text-accent-foreground",
+        default: "bg-primary text-primary-foreground shadow-[var(--shadow-sm)] hover:brightness-110",
+        brand: "bg-brand text-brand-foreground shadow-[var(--shadow-sm)] hover:brightness-105",
+        outline: "border border-border bg-card shadow-[var(--shadow-sm)] hover:bg-accent",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         destructive: "bg-destructive text-destructive-foreground hover:brightness-110",
         soft: "bg-secondary text-secondary-foreground hover:brightness-95",
@@ -36,26 +36,17 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({ classN
 Button.displayName = "Button";
 
 /* ---------- Card ---------- */
-export const spotMove = (e: React.PointerEvent<HTMLElement>) => { const r = e.currentTarget.getBoundingClientRect(); e.currentTarget.style.setProperty("--mx", `${e.clientX - r.left}px`); e.currentTarget.style.setProperty("--my", `${e.clientY - r.top}px`); };
-
-export function Card({ className, plain, onPointerMove, ...p }: React.HTMLAttributes<HTMLDivElement> & { plain?: boolean }) {
-  return (
-    <div
-      onPointerMove={(e) => {
-        if (!plain) { const r = e.currentTarget.getBoundingClientRect(); e.currentTarget.style.setProperty("--mx", `${e.clientX - r.left}px`); e.currentTarget.style.setProperty("--my", `${e.clientY - r.top}px`); }
-        onPointerMove?.(e);
-      }}
-      className={cn("rounded-2xl border border-border bg-card text-card-foreground shadow-[var(--shadow-sm)] transition-shadow duration-300", !plain && "spot hover:shadow-[var(--shadow-md)]", className)}
-      {...p}
-    />
-  );
+export function Card({ className, ...p }: React.HTMLAttributes<HTMLDivElement> & { plain?: boolean }) {
+  const { plain: _plain, ...rest } = p as React.HTMLAttributes<HTMLDivElement> & { plain?: boolean };
+  void _plain;
+  return <div className={cn("rounded-xl border border-border bg-card text-card-foreground shadow-[var(--shadow-sm)]", className)} {...rest} />;
 }
 export const CardHeader = ({ className, ...p }: React.HTMLAttributes<HTMLDivElement>) => <div className={cn("flex items-start justify-between gap-3 p-5 pb-3", className)} {...p} />;
 export const CardTitle = ({ className, ...p }: React.HTMLAttributes<HTMLHeadingElement>) => <h3 className={cn("text-sm font-semibold tracking-tight", className)} {...p} />;
 export const CardContent = ({ className, ...p }: React.HTMLAttributes<HTMLDivElement>) => <div className={cn("p-5 pt-2", className)} {...p} />;
 
 /* ---------- Badge ---------- */
-const badgeVariants = cva("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium", {
+const badgeVariants = cva("inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium", {
   variants: {
     tone: {
       neutral: "bg-muted text-muted-foreground",
@@ -103,7 +94,7 @@ export function DialogContent({ className, children, title, description, side, .
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=open]:fade-in-0" />
       <DialogPrimitive.Content
         className={cn(
-          "liquid fixed z-50 flex flex-col gap-4 overflow-y-auto bg-card p-6 text-card-foreground outline-none",
+          "fixed z-50 flex flex-col gap-4 overflow-y-auto border border-border bg-card p-6 text-card-foreground shadow-[var(--shadow-lg)] outline-none",
           side
             ? "inset-y-0 right-0 w-full max-w-lg rounded-l-2xl animate-in slide-in-from-right duration-300"
             : "left-1/2 top-1/2 max-h-[90dvh] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 rounded-2xl animate-in fade-in zoom-in-95 duration-200",
@@ -167,3 +158,25 @@ export function Progress({ value, className, tone = "primary" }: { value: number
   );
 }
 export const Skeleton = ({ className }: { className?: string }) => <div className={cn("skeleton", className)} />;
+
+/* ---------- Menú contextual simple (⋯) ---------- */
+export function Menu({ children, label = "Más opciones", trigger }: { children: React.ReactNode; label?: string; trigger?: React.ReactNode }) {
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    const k = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", h); document.addEventListener("keydown", k);
+    return () => { document.removeEventListener("mousedown", h); document.removeEventListener("keydown", k); };
+  }, [open]);
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" aria-label={label} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="grid size-8 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">{trigger ?? <span aria-hidden className="text-lg leading-none">⋯</span>}</button>
+      {open && <div role="menu" onClick={() => setOpen(false)} className="absolute right-0 z-40 mt-1 min-w-48 origin-top-right animate-in fade-in zoom-in-95 rounded-xl border border-border bg-popover p-1 text-sm shadow-[var(--shadow-lg)] duration-100">{children}</div>}
+    </div>
+  );
+}
+export function MenuItem({ icon: Icon, children, onClick, danger }: { icon?: React.ComponentType<{ className?: string }>; children: React.ReactNode; onClick?: () => void; danger?: boolean }) {
+  return <button role="menuitem" type="button" onClick={onClick} className={cn("flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-accent", danger && "text-destructive")}>{Icon && <Icon className="size-4 opacity-70" />}{children}</button>;
+}

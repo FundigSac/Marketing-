@@ -80,7 +80,7 @@ export function NotificationsSheet({ open, onOpenChange, tab = "avisos" }: { ope
             </div>
             <div className="space-y-3 rounded-lg border border-border p-3">
               <div className="flex items-center justify-between"><span>Ideas del día automáticas</span><Switch checked={p.autoDaily} onCheckedChange={(on) => set((x) => { x.autoDaily = on; })} /></div>
-              <Field label="Ideas por día"><Select value={p.ideasPerDay} onChange={(e) => set((x) => { x.ideasPerDay = Number(e.target.value); })}>{[3, 4, 5].map((n) => <option key={n} value={n}>{n} ideas</option>)}</Select></Field>
+              <Field label="Ideas por día"><Select value={p.ideasPerDay} onChange={(e) => set((x) => { x.ideasPerDay = Number(e.target.value); })}>{[5, 6].map((n) => <option key={n} value={n}>{n} ideas</option>)}</Select></Field>
               <div className="grid grid-cols-2 gap-3"><Field label="Silencio desde"><Input type="time" value={p.quiet.start} onChange={(e) => set((x) => { x.quiet.start = e.target.value; })} /></Field><Field label="hasta"><Input type="time" value={p.quiet.end} onChange={(e) => set((x) => { x.quiet.end = e.target.value; })} /></Field></div>
             </div>
             <div className="space-y-2 rounded-lg border border-border p-3 text-xs"><div className="flex items-center justify-between"><span>Servicio programado (diario, 07:00 Lima)</span>{ok(st?.cron.configured && st?.supabase.serviceRole)}</div><div className="flex items-center justify-between"><span>Base de datos compartida (Supabase)</span>{ok(st?.supabase.configured)}</div></div>

@@ -5,9 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import { Bot, Clock, Heart, MessagesSquare, Plug, Repeat2, Send, Sparkles, User, X } from "lucide-react";
-import { Badge, Button, Card, Dialog, DialogContent, Input } from "@/components/ui/primitives";
+import { Badge, Button, Card, Dialog, DialogContent, Input, MenuItem } from "@/components/ui/primitives";
 import { EmptyState, PageHeader, PageSkeleton, Seg } from "@/components/ui/blocks";
 import { CHIPS, IdeaActions } from "@/components/idea-actions";
+import { IdeaProgress } from "@/components/idea-progress";
 import { callAI, toIdea, type AiIdea } from "@/lib/ai-client";
 import { generateIdeas, saveIdeas } from "@/lib/actions";
 import { productName, update, useMe } from "@/lib/store";
@@ -23,9 +24,13 @@ function Tile({ idea, hl, onDebate, onAlt, altBusy }: { idea: Idea; hl: boolean;
   useEffect(() => { if (hl) { setOpen(true); ref.current?.scrollIntoView({ behavior: "smooth", block: "center" }); } }, [hl]);
   const set = (fn: (i: Idea) => void, log?: string) => update((x) => { fn(x.ideas.find((q) => q.id === idea.id)!); }, log);
   const pname = productName(s, idea.productId) || idea.productName;
+  const task = s.tasks.find((t) => t.ideaId === idea.id);
+  // Una escena por párrafo: separa por línea en blanco o, si el guion viene corrido, por salto de línea.
+  const blocks = idea.script.split(/\n\s*\n/);
+  const scenes = (blocks.length > 1 ? blocks : idea.script.split("\n")).map((b) => b.trim()).filter(Boolean);
   return (
-    <motion.div ref={ref} layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}>
-      <Card className={`relative flex h-full flex-col gap-2.5 overflow-hidden p-4 transition-transform duration-300 hover:-translate-y-1 ${hl ? "ring-2 ring-primary" : ""}`}><span aria-hidden className={`absolute inset-x-0 top-0 h-[3px] ${idea.source === "ia" ? "bg-[image:var(--grad-brand)]" : "bg-muted"}`} />
+    <motion.div ref={ref} layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}>
+      <Card className={`flex h-full flex-col gap-4 p-5${hl ? "ring-2 ring-primary" : ""}`}>
         <div className="flex items-start justify-between gap-2">
           <div className="flex flex-wrap gap-1.5">
             {idea.status === "en_produccion" && <Badge tone="success">En producción</Badge>}
@@ -35,18 +40,20 @@ function Tile({ idea, hl, onDebate, onAlt, altBusy }: { idea: Idea; hl: boolean;
           </div>
           <button aria-label={idea.favorite ? "Quitar de favoritas" : "Guardar como favorita"} aria-pressed={idea.favorite} onClick={() => set((i) => { i.favorite = !i.favorite; })} className={`-mr-1 rounded-md p-1 transition active:scale-90 ${idea.favorite ? "text-brand" : "text-muted-foreground hover:text-foreground"}`}><Heart className={`size-5 ${idea.favorite ? "fill-current" : ""}`} /></button>
         </div>
-        <h3 className="text-base font-semibold leading-snug">{idea.title}</h3>
-        <p className="text-sm">{idea.concept}</p>
+        <div className="space-y-2">
+          <h3 className="text-base font-semibold leading-snug">{idea.title}</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground">{idea.concept}</p>
+        </div>
         <div className="flex flex-wrap gap-1.5"><Badge tone="primary">{pname || "Producto por definir"}</Badge><Badge><Clock className="size-3" />{idea.duration}</Badge><Badge>{idea.platform}</Badge></div>
-        {open && <pre className="whitespace-pre-wrap rounded-lg bg-muted p-3 font-sans text-sm leading-relaxed">{idea.script}</pre>}
-        <p className="text-xs text-muted-foreground"><b className="text-foreground">Por qué:</b> {idea.why}</p>
-        <div className="mt-auto space-y-2 pt-1">
-          <IdeaActions idea={idea} onView={() => setOpen((o) => !o)} />
-          <div className="flex gap-1.5">
-            <Button size="sm" variant="ghost" onClick={onDebate}><MessagesSquare />Conversar</Button>
-            <Button size="sm" variant="ghost" onClick={onAlt} disabled={altBusy}><Repeat2 />{altBusy ? "Buscando…" : "Alternativas"}</Button>
-            {idea.status !== "en_produccion" && <Button size="sm" variant="ghost" aria-label="Descartar" className="ml-auto" onClick={() => set((i) => { i.status = "descartada"; }, `Descartó la idea "${idea.title}"`)}><X /></Button>}
-          </div>
+        {open && <div className="space-y-3 rounded-lg bg-muted p-4 text-sm leading-relaxed">{scenes.map((p, k) => <p key={k}>{p}</p>)}</div>}
+        {idea.why && <p className="text-xs leading-relaxed text-muted-foreground"><span className="font-medium text-foreground">Por qué funciona:</span> {idea.why}</p>}
+        {task && <IdeaProgress task={task} />}
+        <div className="mt-auto pt-1">
+          <IdeaActions idea={idea} onView={() => setOpen((o) => !o)} extra={<>
+            <MenuItem icon={MessagesSquare} onClick={onDebate}>Conversar con la IA</MenuItem>
+            <MenuItem icon={Repeat2} onClick={onAlt}>{altBusy ? "Buscando alternativas…" : "Pedir alternativas"}</MenuItem>
+            {idea.status !== "en_produccion" && <MenuItem icon={X} danger onClick={() => set((i) => { i.status = "descartada"; }, `Descartó la idea "${idea.title}"`)}>Descartar</MenuItem>}
+          </>} />
         </div>
       </Card>
     </motion.div>

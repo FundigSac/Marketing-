@@ -39,7 +39,7 @@ export function seedState(): State {
     // Sin especificaciones inventadas: el equipo las completa. La IA dirá "por confirmar".
     products: ["Codo HDPE", "Tee HDPE", "Reducción HDPE", "Brida HDPE", "Tapón HDPE", "Tubería HDPE", "Válvulas"].map((name) => ({ id: uid(), name, specs: "", notes: "" })),
     notifs: [], log: [], deliveryLog: [],
-    prefs: { email: true, push: false, recipients: [], reminderDays: [15, 7, 3, 1], quiet: { start: "21:00", end: "07:00" }, ideasPerDay: 4, autoDaily: true, pushSubs: [] },
+    prefs: { email: true, push: false, recipients: [], reminderDays: [15, 7, 3, 1], quiet: { start: "21:00", end: "07:00" }, ideasPerDay: 5, autoDaily: true, pushSubs: [] },
     ai: { calls: {} },
     currentUserId: fab,
   };

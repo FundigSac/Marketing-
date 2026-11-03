@@ -6,7 +6,7 @@ import { Toaster } from "sonner";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+    <ThemeProvider attribute="class" defaultTheme="dark" disableTransitionOnChange>
       <MotionConfig reducedMotion="user">
         {children}
         <Toaster position="bottom-right" richColors closeButton />

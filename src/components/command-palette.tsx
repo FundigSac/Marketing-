@@ -23,7 +23,7 @@ export function CommandPalette({ open, setOpen, onAssistant }: { open: boolean; 
 
   return (
     <Command.Dialog open={open} onOpenChange={setOpen} label="Paleta de comandos" shouldFilter={false} className="fixed inset-0 z-[60] grid place-items-start justify-center bg-slate-950/40 p-4 pt-[12vh] backdrop-blur-[2px]">
-      <div className="liquid w-full max-w-xl overflow-hidden rounded-2xl text-foreground animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-border bg-popover shadow-[var(--shadow-lg)] text-foreground animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center gap-2 border-b border-border px-4">
           <Search className="size-4 text-muted-foreground" />
           <Command.Input value={q} onValueChange={setQ} placeholder="Buscar ideas, videos o fechas…" className="h-12 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" />

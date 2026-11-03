@@ -55,7 +55,7 @@ export function migrateV2(old: V2): State {
     events: events.length ? events : base.events, ideas, tasks,
     products: (old.products ?? []).length ? old.products.map((p: any) => ({ id: p.id, name: p.name, specs: p.specs ?? "", notes: p.pitch ?? "" })) : base.products,
     notifs: [], log: old.log ?? [], deliveryLog: old.deliveryLog ?? [],
-    prefs: { ...base.prefs, email: old.prefs?.email ?? true, push: old.prefs?.push ?? false, recipients: old.prefs?.recipients ?? [], quiet: old.prefs?.quiet ?? base.prefs.quiet, ideasPerDay: Math.min(5, Math.max(3, old.prefs?.ideasPerDay ?? 4)), pushSubs: old.prefs?.pushSubs ?? [] },
+    prefs: { ...base.prefs, email: old.prefs?.email ?? true, push: old.prefs?.push ?? false, recipients: old.prefs?.recipients ?? [], quiet: old.prefs?.quiet ?? base.prefs.quiet, ideasPerDay: 5, pushSubs: old.prefs?.pushSubs ?? [] },
     ai: old.ai ?? { calls: {} },
     currentUserId: users.find((u: any) => u.name === "Fabrizio")?.id ?? users[0]?.id ?? base.currentUserId,
     legacy,
@@ -64,7 +64,12 @@ export function migrateV2(old: V2): State {
 
 /** Acepta datos v2 o v3 (copia de respaldo o base compartida) y devuelve siempre v3. */
 export function toV3(data: any): State {
-  if (data?.version === 3) return { ...seedState(), ...data, version: 3 };
+  if (data?.version === 3) {
+    const base = seedState();
+    // Los valores anteriores por defecto eran 3 y 4; ahora son 5 ideas por día (se puede subir a 6 en Recordatorios).
+    const prefs = { ...base.prefs, ...data.prefs, ideasPerDay: Math.max(5, data.prefs?.ideasPerDay ?? 5) };
+    return { ...base, ...data, prefs, version: 3 };
+  }
   if (data?.version === 2) return migrateV2(data);
   return seedState();
 }

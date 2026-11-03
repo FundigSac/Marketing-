@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { CalendarCheck, Clapperboard, Eye, FileText, Wand2 } from "lucide-react";
-import { Button, Dialog, DialogContent, Field, Input } from "@/components/ui/primitives";
+import { Button, Dialog, DialogContent, Field, Input, Menu, MenuItem } from "@/components/ui/primitives";
 import { Md } from "@/components/ui/blocks";
 import { callAI } from "@/lib/ai-client";
 import { ideaToTask, scheduleIdea } from "@/lib/actions";
@@ -18,7 +18,7 @@ const ERR = (code: string, msg: string) => (code === "IA_NO_CONFIGURADA" ? "La I
 const brief = (i: Idea) => ({ title: i.title, concept: i.concept, script: i.script, duration: i.duration, platform: i.platform });
 
 /** Acciones de una idea: Ver · Mejorar con IA · Crear guion · Programar · Convertir en tarea. */
-export function IdeaActions({ idea, compact, onView }: { idea: Idea; compact?: boolean; onView?: () => void }) {
+export function IdeaActions({ idea, onView, extra }: { idea: Idea; compact?: boolean; onView?: () => void; extra?: React.ReactNode }) {
   const { s, me } = useMe();
   const router = useRouter();
   const [mode, setMode] = useState<"" | "improve" | "script" | "schedule">("");
@@ -50,21 +50,19 @@ export function IdeaActions({ idea, compact, onView }: { idea: Idea; compact?: b
   };
   const toTask = () => { const id = ideaToTask(idea.id, me.id); toast.success("Convertida en video", { action: { label: "Abrir", onClick: () => router.push(`/videos?tarea=${id}`) } }); };
 
-  const B = ({ icon: Icon, label, short, onClick, variant = "outline", href }: { icon: typeof Eye; label: string; short?: string; onClick?: () => void; variant?: "outline" | "brand" | "soft" | "ghost"; href?: string }) =>
-    compact ? (
-      <Button size="icon" variant="ghost" title={label} aria-label={label} onClick={onClick} asChild={!!href} className="size-8">{href ? <Link href={href}><Icon /></Link> : <Icon />}</Button>
-    ) : (
-      <Button size="sm" variant={variant} onClick={onClick} asChild={!!href} title={label} aria-label={label}>{href ? <Link href={href}><Icon />{short ?? label}</Link> : <><Icon />{short ?? label}</>}</Button>
-    );
-
   return (
     <>
-      <div className={compact ? "flex items-center gap-0.5" : "flex flex-wrap gap-2"}>
-        {onView ? <B icon={Eye} label="Ver idea" short="Ver" onClick={onView} /> : <B icon={Eye} label="Ver idea" short="Ver" href={`/ideas?idea=${idea.id}`} />}
-        <B icon={Wand2} label="Mejorar con IA" short="Mejorar" onClick={() => open("improve")} />
-        <B icon={FileText} label="Crear guion" short="Guion" onClick={() => open("script")} />
-        <B icon={CalendarCheck} label="Programar" onClick={() => { setDate(idea.date && idea.date >= todayLima() ? idea.date : addDays(todayLima(), 14)); open("schedule"); }} />
-        {task ? <B icon={Clapperboard} label="Ver video" href={`/videos?tarea=${task.id}`} variant="soft" /> : <B icon={Clapperboard} label="Convertir en tarea" short="Convertir en tarea" onClick={toTask} variant="brand" />}
+      <div className="flex items-center gap-1.5">
+        {task
+          ? <Button size="sm" variant="outline" asChild><Link href={`/videos?tarea=${task.id}`}><Clapperboard />Ver video</Link></Button>
+          : <Button size="sm" variant="default" onClick={toTask}><Clapperboard />Convertir en tarea</Button>}
+        <Menu label="Más acciones de la idea">
+          {onView ? <MenuItem icon={Eye} onClick={onView}>Ver idea</MenuItem> : <MenuItem icon={Eye} onClick={() => router.push(`/ideas?idea=${idea.id}`)}>Ver idea</MenuItem>}
+          <MenuItem icon={Wand2} onClick={() => open("improve")}>Mejorar con IA</MenuItem>
+          <MenuItem icon={FileText} onClick={() => open("script")}>Crear guion</MenuItem>
+          <MenuItem icon={CalendarCheck} onClick={() => { setDate(idea.date && idea.date >= todayLima() ? idea.date : addDays(todayLima(), 14)); open("schedule"); }}>Programar</MenuItem>
+          {extra}
+        </Menu>
       </div>
 
       <Dialog open={mode === "improve" || mode === "script"} onOpenChange={(o) => !o && setMode("")}>

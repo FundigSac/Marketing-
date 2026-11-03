@@ -46,10 +46,10 @@ function Calendario() {
       const color = EVENT_CATEGORIES[e.category].color, rec = e.repeat && e.repeat !== "none";
       for (const date of occurrences(e, from, to)) {
         const timed = !e.allDay && e.start.length > 10;
-        out.push({ id: `${e.id}|${date}`, title: e.title, backgroundColor: color, borderColor: color, editable: !rec, allDay: !timed, start: timed ? `${date}${e.start.slice(10)}` : date, end: !timed && !rec && e.end ? addDays(e.end.slice(0, 10), 1) : undefined, extendedProps: { kind: "event", eventId: e.id } });
+        out.push({ id: `${e.id}|${date}`, title: e.title, backgroundColor: color, borderColor: color, editable: !rec, allDay: !timed, start: timed ? `${date}${e.start.slice(10)}` : date, end: !timed && !rec && e.end ? addDays(e.end.slice(0, 10), 1) : undefined, extendedProps: { kind: "event", eventId: e.id, color } });
       }
     }
-    if (cats.has("entrega")) for (const t of s.tasks) if (t.due && t.due.slice(0, 10) >= from && t.due.slice(0, 10) <= to) out.push({ id: "t|" + t.id, title: "Entrega: " + t.title, start: t.due.slice(0, 10), allDay: true, backgroundColor: EVENT_CATEGORIES.entrega.color, borderColor: EVENT_CATEGORIES.entrega.color, editable: true, extendedProps: { kind: "task", taskId: t.id } });
+    if (cats.has("entrega")) for (const t of s.tasks) if (t.due && t.due.slice(0, 10) >= from && t.due.slice(0, 10) <= to) out.push({ id: "t|" + t.id, title: "Entrega: " + t.title, start: t.due.slice(0, 10), allDay: true, backgroundColor: EVENT_CATEGORIES.entrega.color, borderColor: EVENT_CATEGORIES.entrega.color, editable: true, extendedProps: { kind: "task", taskId: t.id, color: EVENT_CATEGORIES.entrega.color } });
     ok(out);
   }, [s.events, s.tasks, cats]);
 
@@ -91,15 +91,15 @@ function Calendario() {
     <>
       <PageHeader title="Calendario" hint="Semana, mes o año, para cualquier año. Elige una fecha y mira qué video conviene hacer."
         actions={<><Button variant="outline" onClick={evaluate} disabled={busy === "eval"}><Wand2 />{busy === "eval" ? "Evaluando…" : "Evaluar fechas con IA"}</Button><Button variant="brand" onClick={() => setForm(empty(sel))}><Plus />Nuevo evento</Button></>} />
-      {soon.length > 0 && <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-brand/30 bg-brand/5 px-3 py-2 text-sm"><BellRing className="size-4 shrink-0 text-brand" />{soon.map((a) => <span key={a.id} className="rounded-full bg-card px-2.5 py-0.5 text-xs shadow-[var(--shadow-sm)]"><b>{a.title}</b></span>)}</div>}
+      {soon.length > 0 && <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm"><BellRing className="size-4 shrink-0 text-brand" />{soon.map((a) => <span key={a.id} className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium">{a.title}</span>)}</div>}
       <div className="grid gap-4 xl:grid-cols-[1fr_340px]">
         <div className="min-w-0 space-y-3">
           <div className="flex flex-wrap items-center gap-1.5">
             {(Object.entries(EVENT_CATEGORIES) as [EventCategory, { label: string; color: string }][]).map(([k, v]) => <button key={k} onClick={() => toggleCat(k)} aria-pressed={cats.has(k)} className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition ${cats.has(k) ? "border-transparent bg-card shadow-[var(--shadow-sm)]" : "border-dashed opacity-50"}`}><i className="size-2 rounded-full" style={{ background: v.color }} />{v.label}</button>)}
             <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">Ir a<Input type="date" className="h-8 w-auto" onChange={(e) => { if (e.target.value) { ref.current?.getApi().gotoDate(e.target.value); setSel(e.target.value); } }} /></label>
           </div>
-          <div className="rounded-xl border border-border bg-card p-3 shadow-[var(--shadow-sm)] sm:p-4">
-            <FullCalendar ref={ref} plugins={[dayGridPlugin, timeGridPlugin, multiMonthPlugin, interactionPlugin]} locale={esLocale} firstDay={1} initialView="dayGridMonth" height="auto" nowIndicator dayMaxEvents={3} editable selectable multiMonthMaxColumns={3}
+          <div className="rounded-xl border border-border bg-card p-3 sm:p-4">
+            <FullCalendar ref={ref} eventDidMount={(i) => i.el.style.setProperty("--ev", String(i.event.extendedProps.color ?? ""))} plugins={[dayGridPlugin, timeGridPlugin, multiMonthPlugin, interactionPlugin]} locale={esLocale} firstDay={1} initialView="dayGridMonth" height="auto" nowIndicator dayMaxEvents={3} editable selectable multiMonthMaxColumns={3}
               headerToolbar={{ left: "prev,next today", center: "title", right: "timeGridWeek,dayGridMonth,multiMonthYear" }}
               buttonText={{ today: "Hoy", week: "Semana", month: "Mes", year: "Año" }} views={{ multiMonthYear: { buttonText: "Año" } }}
               events={source}

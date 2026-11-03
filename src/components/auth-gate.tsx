@@ -39,7 +39,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   if (phase === "login") {
     return (
       <div className="grid min-h-dvh place-items-center p-4">
-        <Card className="liquid w-full max-w-sm space-y-5 p-8">
+        <Card className="w-full max-w-sm space-y-5 p-8">
           <div className="space-y-1 text-center">
             <span className="mx-auto block w-fit rounded-xl bg-[#131415] px-5 py-3">{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/logo.png" alt="FUNDIGSAC" className="h-10 w-auto" /></span>
             <h1 className="pt-2 text-xl font-semibold">Marketing</h1>
