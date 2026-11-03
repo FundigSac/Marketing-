@@ -101,6 +101,7 @@ export type NotifPrefs = {
   quiet: { start: string; end: string };
   categories: Record<string, { enabled: boolean; days: number[] }>;
   ideasPerDay: number;
+  autoDaily?: boolean;
   pushSubs: unknown[];
 };
 export type DeliveryEntry = { id: string; weekday: number; label: string; kind: DeliverableKind };

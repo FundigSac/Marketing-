@@ -1,24 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { AlertTriangle, ArrowRight, CalendarClock, Film, Lightbulb, ListChecks, Megaphone, MessageSquareQuote, Sparkles, UserRound } from "lucide-react";
+import { AlertTriangle, CalendarClock, Film, Lightbulb, ListChecks, Megaphone, MessageSquareQuote, Sparkles, UserRound } from "lucide-react";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Progress } from "@/components/ui/primitives";
 import { EmptyState, Item, PageHeader, PageSkeleton, Stagger, StatCard } from "@/components/ui/blocks";
 import { useStore } from "@/lib/store";
 import { avgProgress, isOverdue, totals, upcomingEvents } from "@/lib/domain";
 import { deriveAlerts } from "@/lib/alerts";
-import { callAI } from "@/lib/ai-client";
+import { AiBox } from "@/components/ai-box";
 import { EVENT_CATEGORIES } from "@/lib/types";
 import { fmtDate, NUM, todayLima } from "@/lib/utils";
 
 export default function Dashboard() {
   const { s, ready } = useStore();
   const today = todayLima();
-  const [summary, setSummary] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [aiErr, setAiErr] = useState("");
 
   const d = useMemo(() => {
     if (!ready) return null;
@@ -40,13 +37,6 @@ export default function Dashboard() {
   }, [s, ready, today]);
 
   if (!d) return <PageSkeleton />;
-
-  const askSummary = async () => {
-    setBusy(true); setAiErr("");
-    const r = await callAI<{ text: string }>(s, "summary", { instruction: "Elabora un resumen semanal de marketing: fechas próximas, avance de Fabrizio, tareas atrasadas, videos pendientes, campañas y prioridades recomendadas para esta semana. Usa solo los datos del contexto." });
-    setBusy(false);
-    if (r.ok) setSummary(r.data.text); else setAiErr(r.error);
-  };
 
   const hello = new Intl.DateTimeFormat("es-PE", { dateStyle: "full", timeZone: "America/Lima" }).format(new Date());
 
@@ -124,14 +114,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><Sparkles className="size-4 text-brand" />Resumen semanal con IA</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            {summary ? <div className="max-h-56 overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed">{summary}</div> : <p className="text-sm text-muted-foreground">Claude Haiku resume tus datos reales: fechas, tareas, videos y campañas.</p>}
-            {aiErr && <p role="alert" className="text-xs text-destructive">{aiErr}</p>}
-            <Button variant="soft" size="sm" onClick={askSummary} disabled={busy}>{busy ? "Generando…" : summary ? "Actualizar" : "Generar resumen"}<ArrowRight /></Button>
-          </CardContent>
-        </Card>
+        <AiBox title="Resumen semanal con IA" hint="Claude Haiku resume tus datos reales: fechas, tareas, videos y campañas." button="Generar resumen" instruction="Elabora un resumen semanal de marketing: fechas próximas, avance de Fabrizio, tareas atrasadas, videos pendientes, campañas y prioridades recomendadas para esta semana. Usa solo los datos del contexto." />
       </div>
     </>
   );

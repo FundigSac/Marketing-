@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { CalendarCheck, ClipboardList } from "lucide-react";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Input, Select } from "@/components/ui/primitives";
 import { EmptyState, PageHeader, PageSkeleton } from "@/components/ui/blocks";
+import { AiBox } from "@/components/ai-box";
 import { setIdeaStatus } from "@/lib/actions";
 import { productName, update, useMe } from "@/lib/store";
 import { can, IDEA_FLOW, NETWORKS } from "@/lib/types";
@@ -39,6 +40,7 @@ export default function PlanEditorial() {
       <PageHeader title="Plan editorial" hint="Ideas elegidas y aprobadas, ordenadas por fecha, listas para convertir en publicaciones programadas." />
       {ideas.length === 0 ? <EmptyState icon={ClipboardList} title="El plan está vacío" text="Elige ideas en el Centro de ideas. Aquí aparecerán para fecharlas y programarlas." action={<Button asChild><Link href="/ia/ideas">Ir al Centro de ideas</Link></Button>} /> : (
         <div className="space-y-6">
+          <AiBox title="Fechas sugeridas por IA" hint="Claude Haiku propone cuándo publicar cada idea según fechas próximas y carga del equipo." button="Sugerir fechas" instruction={() => `Sugiere una fecha concreta (YYYY-MM-DD, desde hoy) y una red para publicar cada una de estas ideas, con el criterio de cada elección: ${JSON.stringify(ideas.map((i) => ({ idea: i.title, estado: i.status, red: i.network, fechaActual: i.date ?? "sin fecha" })))}`} />
           {[...groups.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([k, list]) => (
             <Card key={k}>
               <CardHeader><CardTitle className="capitalize">{monthLabel(k)}</CardTitle><Badge tone="neutral">{list.length}</Badge></CardHeader>

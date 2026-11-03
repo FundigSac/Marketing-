@@ -137,7 +137,7 @@ body {
   border: 1px solid var(--glass-border);
 }
 .liquid {
-  background: linear-gradient(135deg, var(--glass), color-mix(in srgb, var(--glass) 60%, transparent));
+  background: color-mix(in srgb, var(--card) 94%, transparent);
   backdrop-filter: blur(24px) saturate(1.6);
   -webkit-backdrop-filter: blur(24px) saturate(1.6);
   border: 1px solid var(--glass-border);

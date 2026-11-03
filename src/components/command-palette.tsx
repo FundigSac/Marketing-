@@ -4,11 +4,11 @@ import { Command } from "cmdk";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
-import { CalendarPlus, ClipboardPlus, Lightbulb, Moon, Search } from "lucide-react";
+import { CalendarPlus, ClipboardPlus, Lightbulb, Moon, Search, Sparkles } from "lucide-react";
 import { ALL_ITEMS } from "@/lib/nav";
 import { useStore } from "@/lib/store";
 
-export function CommandPalette({ open, setOpen }: { open: boolean; setOpen: (o: boolean) => void }) {
+export function CommandPalette({ open, setOpen, onAssistant }: { open: boolean; setOpen: (o: boolean) => void; onAssistant: () => void }) {
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
   const { s, ready } = useStore();
@@ -34,6 +34,7 @@ export function CommandPalette({ open, setOpen }: { open: boolean; setOpen: (o: 
             {[
               { l: "Crear evento", i: CalendarPlus, f: () => go("/eventos/nuevo") },
               { l: "Nueva tarea en el Kanban", i: ClipboardPlus, f: () => go("/produccion/kanban?nueva=1") },
+              { l: "Abrir asistente de IA", i: Sparkles, f: onAssistant },
               { l: "Pedir ideas a la IA", i: Lightbulb, f: () => go("/ia/ideas") },
               { l: "Cambiar tema claro/oscuro", i: Moon, f: () => { setTheme(resolvedTheme === "dark" ? "light" : "dark"); setOpen(false); } },
             ].filter((a) => !q || a.l.toLowerCase().includes(q.toLowerCase())).map((a) => (

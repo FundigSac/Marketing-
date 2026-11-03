@@ -53,7 +53,7 @@ function Debate() {
     setBusy(false);
     if (!r.ok) { setErr(r.code === "IA_NO_CONFIGURADA" ? "La IA no está conectada (falta ANTHROPIC_API_KEY en el servidor). Tu mensaje quedó guardado en el historial." : r.error); return; }
     update((st) => { st.ideas.find((x) => x.id === idea.id)!.messages.push({ id: uid(), role: "ia", text: r.data.reply, at: new Date().toISOString() }); });
-    if (r.data.hasRevision) setPending(toIdeaBody(s, r.data.revised));
+    if (r.data.hasRevision) setPending(toIdeaBody(s, r.data.revised, idea.productId));
   };
 
   const applyVersion = () => {

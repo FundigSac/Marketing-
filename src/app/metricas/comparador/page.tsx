@@ -5,6 +5,7 @@ import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAx
 import { GitCompare } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, Input, Tabs, TabsList, TabsTrigger } from "@/components/ui/primitives";
 import { EmptyState, PageHeader, PageSkeleton } from "@/components/ui/blocks";
+import { AiBox } from "@/components/ai-box";
 import { ratio, totals } from "@/lib/domain";
 import { useMe } from "@/lib/store";
 import { NUM, PEN } from "@/lib/utils";
@@ -44,6 +45,7 @@ export default function Comparador() {
         <div className="space-y-4">
           <Card className="overflow-x-auto"><table className="w-full min-w-[560px] text-sm"><thead className="border-b border-border text-left text-xs text-muted-foreground"><tr><th className="p-3">Indicador</th>{cols.map((c) => <th key={c.key} className="p-3">{c.name}<span className="block font-normal">{c.sub}</span></th>)}</tr></thead>
             <tbody>{rows.map(([l, f]) => <tr key={l} className="border-b border-border last:border-0"><td className="p-3 text-muted-foreground">{l}</td>{cols.map((c) => <td key={c.key} className="p-3 font-medium tabular-nums">{f(c)}</td>)}</tr>)}</tbody></table></Card>
+          <AiBox title="Lectura de la comparación con IA" hint="Claude Haiku explica qué campaña o periodo rinde mejor y qué decidir." button="Analizar comparación" instruction={() => `Compara estos resultados reales y explica cuál rinde mejor, por qué y qué conviene hacer en la siguiente campaña: ${JSON.stringify(cols.map((c) => ({ nombre: c.name, periodo: c.sub, presupuesto: c.budget, ...c.t })))}`} />
           <Card><CardHeader><CardTitle>Embudo comparado</CardTitle></CardHeader><CardContent><div className="h-64"><ResponsiveContainer width="100%" height="100%"><BarChart data={chart}><CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} /><XAxis dataKey="k" fontSize={12} stroke="var(--muted-foreground)" /><YAxis fontSize={11} allowDecimals={false} stroke="var(--muted-foreground)" /><Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8 }} /><Legend />{cols.map((c, i) => <Bar key={c.key} dataKey={c.name} fill={COLORS[i % 4]} radius={[4, 4, 0, 0]} />)}</BarChart></ResponsiveContainer></div></CardContent></Card>
         </div>
       )}

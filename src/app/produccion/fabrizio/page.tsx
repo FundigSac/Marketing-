@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { AlertTriangle, CalendarClock, CheckCircle2, Film, Plus, Trash2, Wrench } from "lucide-react";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Field, Input, Progress, Select } from "@/components/ui/primitives";
 import { PageHeader, PageSkeleton, StatCard } from "@/components/ui/blocks";
+import { AiBox } from "@/components/ai-box";
 import { avgProgress, isOverdue, taskProgress } from "@/lib/domain";
 import { update, useMe } from "@/lib/store";
 import { can } from "@/lib/types";
@@ -91,6 +92,8 @@ export default function PanelFabrizio() {
           <CardHeader><CardTitle>Correcciones pendientes</CardTitle></CardHeader>
           <CardContent>{corrections.length === 0 ? <p className="text-sm text-muted-foreground">Sin correcciones.</p> : <ul className="space-y-2 text-sm">{corrections.slice(0, 8).map((c) => <li key={c.key}><Link href={c.href} className="block rounded-md p-2 hover:bg-accent">{c.text}</Link></li>)}</ul>}</CardContent>
         </Card>
+
+        <AiBox className="lg:col-span-3" title={`Resumen de ${person.name} con IA`} hint="Resume avances, entregas pendientes, correcciones y atrasos con los datos registrados." button="Resumir avance" instruction={`Resume el avance de ${person.name}: qué desarrolla, qué debe entregar, videos pendientes, correcciones por hacer, tareas atrasadas y cuándo se espera su próximo avance. Usa solo datos del contexto.`} />
 
         <Card className="lg:col-span-3">
           <CardHeader><CardTitle>Calendario semanal de entregas (editable)</CardTitle></CardHeader>

@@ -69,6 +69,27 @@ export function Item({ children, className }: { children: React.ReactNode; class
   return <motion.div className={className} variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] } } }}>{children}</motion.div>;
 }
 
+/** Markdown mínimo (títulos, viñetas, negritas, tablas simples) para respuestas de la IA. */
+export function Md({ text, className }: { text: string; className?: string }) {
+  const inline = (s: string) => s.split(/(\*\*[^*]+\*\*)/g).map((p, i) => (p.startsWith("**") ? <b key={i}>{p.slice(2, -2)}</b> : <span key={i}>{p}</span>));
+  const lines = text.split("\n");
+  const out: React.ReactNode[] = [];
+  let list: string[] = [];
+  const flush = () => { if (list.length) { out.push(<ul key={`ul-${out.length}-${lines.length}`} className="my-1 list-disc space-y-0.5 pl-5">{list.map((l, i) => <li key={i}>{inline(l)}</li>)}</ul>); list = []; } };
+  lines.forEach((raw, k) => {
+    const l = raw.trimEnd();
+    if (/^\s*[-*•]\s+/.test(l)) { list.push(l.replace(/^\s*[-*•]\s+/, "")); return; }
+    flush();
+    if (/^\|?[\s:-]+\|[\s|:-]*$/.test(l)) return;
+    if (l.startsWith("|")) { out.push(<p key={`t-${k}`} className="font-mono text-xs">{l.split("|").filter(Boolean).map((c) => c.trim()).join(" · ")}</p>); return; }
+    const h = l.match(/^(#{1,4})\s+(.*)/);
+    if (h) { out.push(<p key={`h-${k}`} className="mt-2 font-semibold">{inline(h[2])}</p>); return; }
+    if (l.trim()) out.push(<p key={`p-${k}`}>{inline(l)}</p>);
+  });
+  flush();
+  return <div className={cn("space-y-1.5 text-sm leading-relaxed", className)}>{out}</div>;
+}
+
 export function PageSkeleton() {
   return (
     <div className="space-y-4" aria-busy="true" aria-label="Cargando">

@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { FileSpreadsheet, FileText, Printer, Sparkles } from "lucide-react";
 import { Button, Card, CardContent, CardHeader, CardTitle, Input, Select } from "@/components/ui/primitives";
-import { PageHeader, PageSkeleton } from "@/components/ui/blocks";
+import { Md, PageHeader, PageSkeleton } from "@/components/ui/blocks";
 import { callAI } from "@/lib/ai-client";
 import { byProduct, ratio, totals } from "@/lib/domain";
 import { metricsToRows, toCSV } from "@/lib/metrics-io";
@@ -66,7 +66,7 @@ export default function Informes() {
             <Card><CardHeader><CardTitle>Rendimiento por producto</CardTitle></CardHeader><CardContent>{prods.length === 0 ? <p className="text-sm text-muted-foreground">Asocia productos a los registros para ver este análisis.</p> : <div className="h-64"><ResponsiveContainer width="100%" height="100%"><BarChart data={prods.slice(0, 8).map((p) => ({ n: p.name, Mensajes: p.t.messages, Cotizaciones: p.t.quotes, Ventas: p.t.sales }))}><CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} /><XAxis dataKey="n" fontSize={11} stroke="var(--muted-foreground)" /><YAxis fontSize={11} allowDecimals={false} stroke="var(--muted-foreground)" /><Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8 }} /><Legend /><Bar dataKey="Mensajes" fill="var(--chart-1)" radius={[4, 4, 0, 0]} /><Bar dataKey="Cotizaciones" fill="var(--chart-4)" radius={[4, 4, 0, 0]} /><Bar dataKey="Ventas" fill="var(--chart-5)" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer></div>}</CardContent></Card>
             <Card>
               <CardHeader><CardTitle className="flex items-center gap-2"><Sparkles className="size-4 text-brand" />Recomendación para la siguiente campaña</CardTitle><Button size="sm" variant="soft" className="no-print" onClick={ask} disabled={busy}>{busy ? "Analizando…" : advice ? "Actualizar" : "Pedir a la IA"}</Button></CardHeader>
-              <CardContent>{advice ? <div className="whitespace-pre-wrap text-sm leading-relaxed">{advice}</div> : <p className="text-sm text-muted-foreground">Claude Haiku analiza solo los datos de este informe. La decisión final de inversión es humana.</p>}</CardContent>
+              <CardContent>{advice ? <Md text={advice} /> : <p className="text-sm text-muted-foreground">Claude Haiku analiza solo los datos de este informe. La decisión final de inversión es humana.</p>}</CardContent>
             </Card>
           </>
         )}

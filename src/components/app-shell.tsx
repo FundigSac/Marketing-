@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
-import { Bell, Menu, Moon, PanelLeftClose, PanelLeftOpen, Search, Sun, FlaskConical } from "lucide-react";
+import { Bell, Menu, Moon, PanelLeftClose, PanelLeftOpen, Search, Sparkles, Sun, FlaskConical } from "lucide-react";
 import { ALL_ITEMS, MOBILE_TABS, NAV } from "@/lib/nav";
 import { useMe } from "@/lib/store";
 import { update } from "@/lib/store";
@@ -14,6 +14,10 @@ import { todayLima } from "@/lib/utils";
 import { ROLE_LABEL } from "@/lib/types";
 import { Button, Dialog, DialogContent, Select } from "@/components/ui/primitives";
 import { CommandPalette } from "@/components/command-palette";
+import { AiAssistant } from "@/components/ai-assistant";
+import { generateIdeas } from "@/lib/actions";
+import { can } from "@/lib/types";
+import { toast } from "sonner";
 import { remoteEnabled } from "@/lib/sync";
 
 const isActive = (path: string, href: string) => (href === "/" ? path === "/" : path === href || (path.startsWith(href + "/") && !ALL_ITEMS.some((i) => i.href !== href && i.href.startsWith(href + "/") && path.startsWith(i.href))));
@@ -62,6 +66,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobile, setMobile] = useState(false);
   const [palette, setPalette] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const path = usePathname();
 
@@ -87,6 +92,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, [router]);
+
+  // Ideas del día: si la IA está conectada, se piden una vez al día al abrir la app (se puede desactivar en Config. de avisos).
+  useEffect(() => {
+    if (!ready || !me || s.prefs.autoDaily === false || !can(me.role, "ideas.write")) return;
+    const today = todayLima();
+    if (s.ai.lastIdeasDay === today) return;
+    const flag = "auto-ideas-" + today;
+    try { if (sessionStorage.getItem(flag)) return; sessionStorage.setItem(flag, "1"); } catch {}
+    fetch("/api/ai").then((r) => r.json()).then(async (c) => {
+      if (!c.configured) return;
+      const r = await generateIdeas(s, { count: s.prefs.ideasPerDay, allowFallback: false });
+      if (r.ok) toast.success(`${r.n} ideas del día generadas con Claude Haiku`, { action: { label: "Ver", onClick: () => router.push("/ia/ideas") } });
+    }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, me?.id]);
 
   const alerts = useMemo(() => (ready ? deriveAlerts(s, todayLima()) : []), [s, ready]);
   const urgent = alerts.filter((a) => a.level !== "info").length;
@@ -121,6 +141,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 {s.users.filter((u) => u.active).map((u) => <option key={u.id} value={u.id}>{u.name} · {ROLE_LABEL[u.role]}</option>)}
               </Select>
             )}
+            <Button variant="soft" size="sm" onClick={() => setAiOpen(true)} aria-label="Abrir asistente de IA" className="gap-1.5"><Sparkles className="text-brand" /><span className="hidden sm:inline">Asistente IA</span></Button>
             <Button variant="ghost" size="icon" asChild aria-label="Notificaciones" className="relative">
               <Link href="/notificaciones"><Bell />{urgent > 0 && <span className="absolute right-1 top-1 grid min-w-4 place-items-center rounded-full bg-brand px-1 text-[10px] font-semibold leading-4 text-brand-foreground">{urgent}</span>}</Link>
             </Button>
@@ -150,7 +171,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <NavList onNavigate={() => setMobile(false)} />
         </DialogContent>
       </Dialog>
-      <CommandPalette open={palette} setOpen={setPalette} />
+      <CommandPalette open={palette} setOpen={setPalette} onAssistant={() => { setPalette(false); setAiOpen(true); }} />
+      <AiAssistant open={aiOpen} onOpenChange={setAiOpen} />
     </div>
   );
 }

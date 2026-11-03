@@ -20,6 +20,11 @@ export function buildContext(s: State) {
     tareas: s.tasks.slice(0, 40).map((t) => ({ titulo: t.title, estado: t.status, vence: t.due, responsable: s.users.find((u) => u.id === t.assigneeId)?.name })),
     campanas: s.campaigns.map((c) => ({ nombre: c.name, estado: c.status, presupuestoPEN: c.budget, inicio: c.start, fin: c.end })),
     resultadosRegistrados: s.metrics.length ? m : "sin datos registrados",
+    resultadosPorCampana: s.campaigns.map((c) => ({ campana: c.name, ...totals(s.metrics.filter((x) => x.campaignId === c.id)) })).filter((x) => x.spend || x.messages || x.quotes),
+    entregables: s.deliverables.slice(0, 30).map((d) => ({ titulo: d.title, vence: d.dueAt.slice(0, 10), recibido: !!d.receivedAt, correccion: d.corrections, responsable: s.users.find((u) => u.id === d.assigneeId)?.name })),
+    videos: s.videos.slice(0, 20).map((v) => ({ titulo: v.title, estado: v.status, observacionesPendientes: v.notes.filter((n) => !n.resolved).length })),
+    consultas: { total: s.leads.length, porEtapa: Object.fromEntries(["mensaje", "cotizacion", "negociacion", "venta", "perdida"].map((e) => [e, s.leads.filter((l) => l.stage === e).length])) },
+    equipo: s.users.filter((u) => u.active).map((u) => ({ nombre: u.name, rol: u.role })),
     contactoComercial: s.company.salesPhones.filter((p) => p.number).map((p) => `${p.label}: ${p.number}`),
     fechaLimiteTrabajo: addDays(today, 7),
   };
@@ -44,9 +49,14 @@ export async function callAI<T>(s: State, task: string, payload: Record<string, 
 
 type AiIdea = { title: string; date: string; productName: string; objective: string; network: string; contentType: string; visual: string; script: string; resources: string; why: string; priority: "alta" | "media" | "baja" };
 
-export const toIdeaBody = (s: State, a: AiIdea): IdeaBody => ({
+const matchProduct = (s: State, name: string) => {
+  const n = name.toLowerCase();
+  return (s.products.find((p) => p.name.toLowerCase() === n) ?? s.products.find((p) => n.includes(p.name.toLowerCase()) || p.name.toLowerCase().includes(n)))?.id;
+};
+
+export const toIdeaBody = (s: State, a: AiIdea, fallbackProductId?: string): IdeaBody => ({
   title: a.title, date: /^\d{4}-\d{2}-\d{2}$/.test(a.date) ? a.date : undefined,
-  productId: s.products.find((p) => p.name.toLowerCase() === a.productName.toLowerCase())?.id,
+  productId: matchProduct(s, a.productName) ?? fallbackProductId,
   objective: a.objective, network: a.network, contentType: a.contentType, visual: a.visual, script: a.script,
   resources: a.resources, why: a.why, priority: a.priority,
 });
