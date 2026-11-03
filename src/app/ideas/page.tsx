@@ -30,7 +30,7 @@ function Tile({ idea, hl, onDebate, onAlt, altBusy }: { idea: Idea; hl: boolean;
   const scenes = (blocks.length > 1 ? blocks : idea.script.split("\n")).map((b) => b.trim()).filter(Boolean);
   return (
     <motion.div ref={ref} layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}>
-      <Card className={`flex h-full flex-col gap-4 p-5${hl ? "ring-2 ring-primary" : ""}`}>
+      <Card className={`surface-hover flex h-full flex-col gap-4 p-5 ${hl ? "ring-2 ring-brand" : ""}`}>
         <div className="flex items-start justify-between gap-2">
           <div className="flex flex-wrap gap-1.5">
             {idea.status === "en_produccion" && <Badge tone="success">En producción</Badge>}

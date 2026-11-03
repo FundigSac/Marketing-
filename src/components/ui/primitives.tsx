@@ -17,7 +17,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground shadow-[var(--shadow-sm)] hover:brightness-110",
-        brand: "bg-brand text-brand-foreground shadow-[var(--shadow-sm)] hover:brightness-105",
+        brand: "bg-brand text-brand-foreground shadow-[0_1px_0_rgba(255,255,255,.25)_inset,0_6px_20px_-6px_color-mix(in_srgb,var(--brand)_60%,transparent)] hover:brightness-110",
         outline: "border border-border bg-card shadow-[var(--shadow-sm)] hover:bg-accent",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         destructive: "bg-destructive text-destructive-foreground hover:brightness-110",
@@ -39,7 +39,7 @@ Button.displayName = "Button";
 export function Card({ className, ...p }: React.HTMLAttributes<HTMLDivElement> & { plain?: boolean }) {
   const { plain: _plain, ...rest } = p as React.HTMLAttributes<HTMLDivElement> & { plain?: boolean };
   void _plain;
-  return <div className={cn("rounded-xl border border-border bg-card text-card-foreground shadow-[var(--shadow-sm)]", className)} {...rest} />;
+  return <div className={cn("surface rounded-2xl border border-border bg-card text-card-foreground", className)} {...rest} />;
 }
 export const CardHeader = ({ className, ...p }: React.HTMLAttributes<HTMLDivElement>) => <div className={cn("flex items-start justify-between gap-3 p-5 pb-3", className)} {...p} />;
 export const CardTitle = ({ className, ...p }: React.HTMLAttributes<HTMLHeadingElement>) => <h3 className={cn("text-sm font-semibold tracking-tight", className)} {...p} />;

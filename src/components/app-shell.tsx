@@ -85,7 +85,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-dvh">
       {/* Barra lateral (escritorio) */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border bg-card transition-[width] duration-200 lg:flex" style={{ width: W }} aria-label="Barra lateral">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border bg-background/80 backdrop-blur transition-[width] duration-200 lg:flex" style={{ width: W }} aria-label="Barra lateral">
         <Link href="/" aria-label="FUNDIGSAC · Inicio" className={`flex h-14 shrink-0 items-center border-b border-border ${collapsed ? "justify-center" : "px-4"}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {collapsed ? <img src="/icon-64.png" alt="FUNDIGSAC" className="size-8 rounded-lg" /> : <img src="/logo.png" alt="FUNDIGSAC" className="h-8 w-auto" />}
@@ -94,8 +94,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {NAV.map(({ label, href, icon: Icon, key }) => {
             const active = isActive(path, href);
             return (
-              <Link key={href} href={href} title={label} aria-current={active ? "page" : undefined} className={`relative flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${collapsed ? "justify-center" : ""} ${active ? "text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}>
-                {active && <motion.span layoutId="nav-active" className="absolute inset-0 rounded-lg bg-secondary" transition={{ type: "spring", stiffness: 600, damping: 45 }} />}
+              <Link key={href} href={href} title={label} aria-current={active ? "page" : undefined} className={`relative flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${collapsed ? "justify-center" : ""} ${active ? "text-foreground" : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"}`}>
+                {active && <motion.span layoutId="nav-active" className="absolute inset-0 rounded-lg border border-border bg-accent shadow-[inset_0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]" transition={{ type: "spring", stiffness: 600, damping: 45 }}><span className="absolute inset-y-2 -left-2.5 w-[3px] rounded-r-full bg-brand" /></motion.span>}
                 <Icon className="relative size-[18px] shrink-0" />
                 {!collapsed && <span className="relative">{label}</span>}
                 {!collapsed && <kbd className="relative ml-auto hidden text-[10px] font-normal text-muted-foreground/60 xl:block">g {key}</kbd>}
@@ -137,8 +137,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {NAV.map(({ short, href, icon: Icon }) => {
           const active = isActive(path, href);
           return (
-            <Link key={href} href={href} aria-current={active ? "page" : undefined} className={`relative flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium transition-colors ${active ? "text-primary" : "text-muted-foreground"}`}>
-              {active && <motion.span layoutId="tab-active" className="absolute inset-x-6 top-0 h-0.5 rounded-b bg-primary" transition={{ type: "spring", stiffness: 600, damping: 45 }} />}
+            <Link key={href} href={href} aria-current={active ? "page" : undefined} className={`relative flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium transition-colors ${active ? "text-foreground" : "text-muted-foreground"}`}>
+              {active && <motion.span layoutId="tab-active" className="absolute inset-x-6 top-0 h-0.5 rounded-b bg-brand" transition={{ type: "spring", stiffness: 600, damping: 45 }} />}
               <Icon className="size-5" />{short}
             </Link>
           );

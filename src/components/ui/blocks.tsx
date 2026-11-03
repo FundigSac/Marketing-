@@ -11,8 +11,8 @@ export function PageHeader({ title, hint, actions, eyebrow }: { title: string; h
       className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div>
         {eyebrow && <p className="mb-1 text-xs font-medium text-muted-foreground">{eyebrow}</p>}
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-        {hint && <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{hint}</p>}
+        <h1 className="text-gradient text-3xl font-semibold tracking-tight">{title}</h1>
+        {hint && <p className="mt-2 max-w-2xl text-[15px] text-muted-foreground">{hint}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </motion.header>
@@ -128,4 +128,38 @@ export function Sparkline({ data, className }: { data: number[]; className?: str
   const max = Math.max(...data, 1), w = 100, h = 28;
   const pts = data.map((v, i) => `${(i / (data.length - 1)) * w},${h - (v / max) * (h - 4) - 2}`).join(" ");
   return <svg viewBox={`0 0 ${w} ${h}`} className={cn("h-7 w-24", className)} preserveAspectRatio="none" aria-hidden><polyline points={pts} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+
+/** Barras mínimas (ref. 21st.dev "Stats Card"): la última barra va en color de marca. */
+export function MiniBars({ data, labels, className }: { data: number[]; labels?: string[]; className?: string }) {
+  const max = Math.max(...data, 1);
+  return (
+    <div className={cn("flex h-12 items-end gap-1.5", className)} aria-hidden>
+      {data.map((v, i) => (
+        <div key={i} className="flex flex-1 flex-col items-center gap-1">
+          <motion.div title={labels?.[i] ? `${labels[i]}: ${v}` : String(v)} className={cn("w-full rounded-t-[5px] rounded-b-[2px]", i === data.length - 1 ? "bg-brand" : "bg-foreground/15")}
+            initial={{ height: 3 }} animate={{ height: Math.max(3, (v / max) * 40) }} transition={{ duration: 0.6, delay: 0.1 + i * 0.05, ease: [0.22, 1, 0.36, 1] }} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Indicador con número grande, contexto y tendencia de las últimas semanas. */
+export function Kpi({ label, value, sub, icon: Icon, bars, href }: { label: string; value: number; sub: string; icon: LucideIcon; bars: number[]; href?: string }) {
+  const body = (
+    <Card className="surface-hover flex h-full flex-col gap-3 p-4 sm:p-5">
+      <div className="flex items-center justify-between">
+        <span className="flex min-w-0 items-center gap-2 truncate text-[13px] text-muted-foreground"><span className="grid size-7 place-items-center rounded-lg border border-border bg-muted"><Icon className="size-3.5" /></span>{label}</span>
+      </div>
+      <div className="flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-gradient text-[26px] font-semibold leading-none tracking-tight tabular-nums sm:text-[32px]"><CountUp value={value} /></p>
+          <p className="mt-2 truncate text-xs text-muted-foreground">{sub}</p>
+        </div>
+        <MiniBars data={bars} className="hidden w-24 shrink-0 sm:flex" />
+      </div>
+    </Card>
+  );
+  return href ? <a href={href} className="block h-full rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">{body}</a> : body;
 }

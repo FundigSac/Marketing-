@@ -43,6 +43,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: #0a0a0a;
   --foreground: #ededed;
   --card: #111111;
@@ -121,6 +122,31 @@ body {
   font-feature-settings: "cv11", "ss01";
 }
 h1, h2, h3 { letter-spacing: -0.015em; }
+
+/* ── Superficies con profundidad (ref. 21st.dev "Glowing Card" / "Stats Card") ──
+   Las tarjetas tienen un degradado vertical casi imperceptible y un brillo de 1px arriba.
+   .spotlight agrega un foco de luz suave; úsalo en UNA tarjeta destacada por pantalla. */
+.surface {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--foreground) 2.5%, var(--card)) 0%, var(--card) 60%);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--foreground) 6%, transparent), var(--shadow-sm);
+}
+.surface-hover { transition: border-color .2s var(--ease), transform .2s var(--ease), box-shadow .2s var(--ease); }
+.surface-hover:hover { border-color: color-mix(in srgb, var(--foreground) 16%, var(--border)); transform: translateY(-2px); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--foreground) 8%, transparent), var(--shadow-md); }
+.spotlight { position: relative; overflow: hidden; isolation: isolate; }
+.spotlight::before {
+  content: ""; position: absolute; z-index: -1; inset: -40% auto auto -10%; width: 70%; height: 140%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--brand) 16%, transparent), transparent 70%);
+  pointer-events: none;
+}
+.spotlight::after {
+  content: ""; position: absolute; z-index: -1; inset: 0;
+  background-image: linear-gradient(color-mix(in srgb, var(--foreground) 4%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--foreground) 4%, transparent) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(ellipse at 20% 0%, #000 0%, transparent 65%);
+  pointer-events: none;
+}
+.text-gradient { background: linear-gradient(180deg, var(--foreground) 30%, color-mix(in srgb, var(--foreground) 55%, transparent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.dark body { background: radial-gradient(1200px 500px at 50% -200px, color-mix(in srgb, var(--brand) 6%, transparent), transparent 70%), var(--background); background-attachment: fixed; }
 
 /* Solo los paneles flotantes (paleta, paneles laterales, menú móvil) usan un vidrio muy sutil. */
 .glass {

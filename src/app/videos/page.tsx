@@ -25,11 +25,11 @@ function Tile({ t, today, canDrag, onOpen }: { t: Task; today: string; canDrag: 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: t.id, disabled: !canDrag });
   const late = isOverdue(t, today), pend = t.notes.filter((n) => !n.resolved).length;
   return (
-    <div ref={setNodeRef} style={{ transform: transform ? `translate3d(${transform.x}px,${transform.y}px,0)` : undefined }} className={`rounded-xl border bg-card p-3 text-sm shadow-[var(--shadow-sm)] transition-shadow duration-200 ${late ? "border-destructive/50" : "border-border"} ${isDragging ? "relative z-20 rotate-1 shadow-[var(--shadow-lg)]" : "hover:shadow-[var(--shadow-md)]"}`}>
+    <div ref={setNodeRef} style={{ transform: transform ? `translate3d(${transform.x}px,${transform.y}px,0)` : undefined }} className={`surface rounded-xl border bg-card p-3.5 text-sm transition-[box-shadow,border-color] duration-200 ${late ? "border-destructive/50" : "border-border hover:border-foreground/20"} ${isDragging ? "relative z-20 rotate-1 shadow-[var(--shadow-lg)]" : ""}`}>
       <div {...listeners} {...attributes} className={canDrag ? "cursor-grab touch-none" : ""}>
         <button onPointerDown={(e) => e.stopPropagation()} onClick={onOpen} className="line-clamp-2 text-left font-medium hover:text-primary">{t.title}</button>
         <div className="mt-2 flex flex-wrap items-center gap-1.5"><Badge tone={PRIO[t.priority]}>{t.priority}</Badge>{t.due && <Badge tone={late ? "danger" : "neutral"}><CalendarClock className="size-3" />{fmtDate(t.due)}</Badge>}{t.files.length > 0 && <Badge><Paperclip className="size-3" />{t.files.length}</Badge>}{t.changes && <Badge tone="warning">Correcciones</Badge>}{pend > 0 && <Badge tone="danger"><MessageSquareWarning className="size-3" />{pend}</Badge>}</div>
-        <div className="mt-2 flex items-center gap-2"><Progress value={taskProgress(t)} className="h-1.5" tone={late ? "brand" : "primary"} /><span className="text-[11px] tabular-nums text-muted-foreground">{taskProgress(t)}%</span></div>
+        <div className="mt-2 flex items-center gap-2"><Progress value={taskProgress(t)} className="h-1" tone="brand" /><span className="text-[11px] tabular-nums text-muted-foreground">{taskProgress(t)}%</span></div>
       </div>
     </div>
   );
