@@ -12,13 +12,13 @@ import { cn } from "@/lib/utils";
 
 /* ---------- Button ---------- */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-200 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow-sm hover:brightness-110",
-        brand: "bg-brand text-brand-foreground shadow-sm hover:brightness-105",
-        outline: "border border-border bg-card hover:bg-accent hover:text-accent-foreground",
+        default: "bg-[image:var(--grad-primary)] text-primary-foreground shadow-[0_8px_20px_-8px_color-mix(in_srgb,var(--primary)_80%,transparent)] hover:-translate-y-px hover:shadow-[0_12px_26px_-8px_color-mix(in_srgb,var(--primary)_85%,transparent)] shine",
+        brand: "bg-[image:var(--grad-brand)] text-white shadow-[0_10px_24px_-10px_rgba(255,106,0,0.85)] hover:-translate-y-px hover:shadow-[0_14px_30px_-10px_rgba(255,106,0,0.9)] shine",
+        outline: "border border-border bg-card shadow-[var(--shadow-sm)] hover:-translate-y-px hover:bg-accent hover:text-accent-foreground",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         destructive: "bg-destructive text-destructive-foreground hover:brightness-110",
         soft: "bg-secondary text-secondary-foreground hover:brightness-95",
@@ -36,8 +36,19 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({ classN
 Button.displayName = "Button";
 
 /* ---------- Card ---------- */
-export function Card({ className, ...p }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("rounded-lg border border-border bg-card text-card-foreground shadow-[var(--shadow-sm)]", className)} {...p} />;
+export const spotMove = (e: React.PointerEvent<HTMLElement>) => { const r = e.currentTarget.getBoundingClientRect(); e.currentTarget.style.setProperty("--mx", `${e.clientX - r.left}px`); e.currentTarget.style.setProperty("--my", `${e.clientY - r.top}px`); };
+
+export function Card({ className, plain, onPointerMove, ...p }: React.HTMLAttributes<HTMLDivElement> & { plain?: boolean }) {
+  return (
+    <div
+      onPointerMove={(e) => {
+        if (!plain) { const r = e.currentTarget.getBoundingClientRect(); e.currentTarget.style.setProperty("--mx", `${e.clientX - r.left}px`); e.currentTarget.style.setProperty("--my", `${e.clientY - r.top}px`); }
+        onPointerMove?.(e);
+      }}
+      className={cn("rounded-2xl border border-border bg-card text-card-foreground shadow-[var(--shadow-sm)] transition-shadow duration-300", !plain && "spot hover:shadow-[var(--shadow-md)]", className)}
+      {...p}
+    />
+  );
 }
 export const CardHeader = ({ className, ...p }: React.HTMLAttributes<HTMLDivElement>) => <div className={cn("flex items-start justify-between gap-3 p-5 pb-3", className)} {...p} />;
 export const CardTitle = ({ className, ...p }: React.HTMLAttributes<HTMLHeadingElement>) => <h3 className={cn("text-sm font-semibold tracking-tight", className)} {...p} />;

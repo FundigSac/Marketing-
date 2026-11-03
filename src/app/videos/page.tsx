@@ -6,8 +6,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { DndContext, PointerSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { toast } from "sonner";
 import { CalendarClock, Check, CheckCircle2, ExternalLink, History as HistoryIcon, MessageSquareWarning, Paperclip, Pencil, Plus, Send, Trash2, Upload } from "lucide-react";
-import { Badge, Button, Card, ConfirmDialog, Dialog, DialogContent, Field, Input, Progress, Select, Tabs, TabsList, TabsTrigger, Textarea } from "@/components/ui/primitives";
-import { CountUp, EmptyState, Item, PageHeader, PageSkeleton, Ring, Stagger } from "@/components/ui/blocks";
+import { Badge, Button, Card, ConfirmDialog, Dialog, DialogContent, Field, Input, Progress, Select, Tabs, TabsList, TabsTrigger, Textarea, spotMove } from "@/components/ui/primitives";
+import { CountUp, EmptyState, Item, PageHeader, PageSkeleton, Ring, Seg, Stagger } from "@/components/ui/blocks";
+import { fireConfetti } from "@/lib/confetti";
 import { TaskDialog } from "@/components/task-dialog";
 import { useFileUrl } from "@/components/use-file-url";
 import { attachFile, moveTask, requestChanges } from "@/lib/actions";
@@ -17,13 +18,14 @@ import { COLUMNS, PLATFORMS, type Column, type Task } from "@/lib/types";
 import { fmtDate, fmtDateTime, mmss, NUM, todayLima, uid } from "@/lib/utils";
 
 
+const DOT: Record<string, string> = { todo: "#8d9ab8", edicion: "#4f8cff", revision: "#ff9a3d", aprobado: "#12a45a", publicado: "#1b4fd8" };
 const PRIO = { alta: "danger", media: "warning", baja: "neutral" } as const;
 
 function Tile({ t, today, canDrag, onOpen }: { t: Task; today: string; canDrag: boolean; onOpen: () => void }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: t.id, disabled: !canDrag });
   const late = isOverdue(t, today), pend = t.notes.filter((n) => !n.resolved).length;
   return (
-    <div ref={setNodeRef} style={{ transform: transform ? `translate3d(${transform.x}px,${transform.y}px,0)` : undefined }} className={`rounded-xl border bg-card p-3 text-sm shadow-[var(--shadow-sm)] transition-shadow ${late ? "border-destructive/60" : "border-border"} ${isDragging ? "relative z-20 rotate-1 shadow-[var(--shadow-lg)]" : "hover:shadow-[var(--shadow-md)]"}`}>
+    <div ref={setNodeRef} style={{ transform: transform ? `translate3d(${transform.x}px,${transform.y}px,0)` : undefined }} onPointerMove={spotMove} className={`spot rounded-2xl border bg-card p-3 text-sm shadow-[var(--shadow-sm)] transition-[box-shadow,transform] duration-300 ${late ? "border-destructive/60" : "border-border"} ${isDragging ? "relative z-20 rotate-2 scale-105 shadow-[var(--shadow-lg)]" : "hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]"}`}>
       <div {...listeners} {...attributes} className={canDrag ? "cursor-grab touch-none" : ""}>
         <button onPointerDown={(e) => e.stopPropagation()} onClick={onOpen} className="line-clamp-2 text-left font-medium hover:text-primary">{t.title}</button>
         <div className="mt-2 flex flex-wrap items-center gap-1.5"><Badge tone={PRIO[t.priority]}>{t.priority}</Badge>{t.due && <Badge tone={late ? "danger" : "neutral"}><CalendarClock className="size-3" />{fmtDate(t.due)}</Badge>}{t.files.length > 0 && <Badge><Paperclip className="size-3" />{t.files.length}</Badge>}{t.changes && <Badge tone="warning">Correcciones</Badge>}{pend > 0 && <Badge tone="danger"><MessageSquareWarning className="size-3" />{pend}</Badge>}</div>
@@ -36,8 +38,8 @@ function Tile({ t, today, canDrag, onOpen }: { t: Task; today: string; canDrag: 
 function Col({ id, label, tasks, today, canDrag, onOpen }: { id: Column; label: string; tasks: Task[]; today: string; canDrag: boolean; onOpen: (id: string) => void }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
-    <div ref={setNodeRef} className={`flex w-60 shrink-0 flex-col rounded-2xl p-2.5 transition-colors lg:w-auto lg:min-w-0 ${isOver ? "bg-secondary" : "bg-muted/60"}`}>
-      <h3 className="mb-2 flex items-center justify-between px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}<span className="rounded-full bg-card px-2 py-0.5 text-foreground">{tasks.length}</span></h3>
+    <div ref={setNodeRef} className={`flex w-60 shrink-0 flex-col rounded-2xl p-2.5 transition-colors lg:w-auto lg:min-w-0 ${isOver ? "bg-secondary ring-2 ring-primary/30" : "bg-muted/50"}`}>
+      <h3 className="mb-2.5 flex items-center justify-between px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground"><span className="flex items-center gap-2"><i className="size-2 rounded-full" style={{ background: DOT[id] }} />{label}</span><span className="rounded-full bg-card px-2 py-0.5 text-foreground shadow-[var(--shadow-sm)]">{tasks.length}</span></h3>
       <div className="min-h-20 flex-1 space-y-2">{tasks.map((t) => <Tile key={t.id} t={t} today={today} canDrag={canDrag} onOpen={() => onOpen(t.id)} />)}</div>
     </div>
   );
@@ -61,7 +63,7 @@ function Sheet({ id, onClose }: { id: string | null; onClose: () => void }) {
 
   const reviewer = me.role === "reviewer";
   const patch = (fn: (x: Task) => void, log?: string) => update((st) => { fn(st.tasks.find((y) => y.id === t.id)!); }, log);
-  const move = (to: Column) => { const r = moveTask(t.id, to, me.id); r.ok ? toast.success(`Movido a ${COLUMNS.find((c) => c.id === to)!.label}`) : toast.error(r.error); return r.ok; };
+  const move = (to: Column) => { const r = moveTask(t.id, to, me.id); if (r.ok) { toast.success(`Movido a ${COLUMNS.find((c) => c.id === to)!.label}`); if (to === "aprobado" || to === "publicado") fireConfetti(); } else toast.error(r.error); return r.ok; };
   const pending = t.notes.filter((n) => n.mandatory && !n.resolved).length;
   const notes = t.notes.filter((n) => n.fileId === current?.id).sort((a, b) => a.at - b.at);
 
@@ -159,7 +161,7 @@ function Board() {
     <>
       <PageHeader title="Mis videos" hint="Del guion a la publicación. Arrastra cada video; ábrelo para subir avances y recibir feedback."
         actions={<Button variant="brand" onClick={() => setOpen(true)}><Plus />Nuevo video</Button>} />
-      <Tabs value={tab} onValueChange={setTab} className="mb-4"><TabsList><TabsTrigger value="tablero">Tablero ({tasks.filter((t) => t.status !== "publicado").length})</TabsTrigger><TabsTrigger value="historial">Historial ({tasks.filter((t) => t.status === "publicado").length})</TabsTrigger></TabsList></Tabs>
+      <div className="mb-4"><Seg id="videos" value={tab} onChange={setTab} items={[{ id: "tablero", label: `Tablero (${tasks.filter((x) => x.status !== "publicado").length})` }, { id: "historial", label: `Historial (${tasks.filter((x) => x.status === "publicado").length})` }]} /></div>
       {tab === "tablero" ? (
         <>
           {tasks.length === 0 && <Card className="mb-4 p-4 text-sm text-muted-foreground">Aún no hay videos. Crea uno o convierte una idea de <Link href="/ideas" className="text-primary underline">Ideas con IA</Link> en tarea.</Card>}

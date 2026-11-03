@@ -10,8 +10,8 @@ export function PageHeader({ title, hint, actions, eyebrow }: { title: string; h
     <motion.header initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
       className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div>
-        {eyebrow && <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-brand">{eyebrow}</p>}
-        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{title}</h1>
+        {eyebrow && <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand">{eyebrow}</p>}
+        <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{title}</h1>
         {hint && <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{hint}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
@@ -95,6 +95,20 @@ export function Ring({ pct, size = 92, stroke = 9, tone = "var(--brand)", childr
         <motion.circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={tone} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={c} initial={{ strokeDashoffset: c }} animate={{ strokeDashoffset: c * (1 - Math.max(0, Math.min(100, pct)) / 100) }} transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }} />
       </svg>
       <div className="absolute inset-0 grid place-items-center text-center">{children}</div>
+    </div>
+  );
+}
+
+/** Pestañas tipo segmento con indicador que se desliza (resorte). */
+export function Seg<T extends string>({ value, onChange, items, id }: { value: T; onChange: (v: T) => void; items: { id: T; label: React.ReactNode }[]; id: string }) {
+  return (
+    <div role="tablist" className="relative inline-flex gap-0.5 rounded-xl bg-muted p-1">
+      {items.map((it) => (
+        <button key={it.id} role="tab" aria-selected={value === it.id} onClick={() => onChange(it.id)} className={cn("relative rounded-lg px-3.5 py-1.5 text-sm font-medium transition-colors", value === it.id ? "text-foreground" : "text-muted-foreground hover:text-foreground")}>
+          {value === it.id && <motion.span layoutId={`seg-${id}`} className="absolute inset-0 rounded-lg bg-card shadow-[var(--shadow-sm)]" transition={{ type: "spring", stiffness: 500, damping: 38 }} />}
+          <span className="relative">{it.label}</span>
+        </button>
+      ))}
     </div>
   );
 }

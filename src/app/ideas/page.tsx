@@ -5,8 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import { Bot, Clock, Heart, MessagesSquare, Plug, Repeat2, Send, Sparkles, User, X } from "lucide-react";
-import { Badge, Button, Card, Dialog, DialogContent, Input, Tabs, TabsList, TabsTrigger } from "@/components/ui/primitives";
-import { EmptyState, PageHeader, PageSkeleton } from "@/components/ui/blocks";
+import { Badge, Button, Card, Dialog, DialogContent, Input } from "@/components/ui/primitives";
+import { EmptyState, PageHeader, PageSkeleton, Seg } from "@/components/ui/blocks";
 import { CHIPS, IdeaActions } from "@/components/idea-actions";
 import { callAI, toIdea, type AiIdea } from "@/lib/ai-client";
 import { generateIdeas, saveIdeas } from "@/lib/actions";
@@ -25,7 +25,7 @@ function Tile({ idea, hl, onDebate, onAlt, altBusy }: { idea: Idea; hl: boolean;
   const pname = productName(s, idea.productId) || idea.productName;
   return (
     <motion.div ref={ref} layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}>
-      <Card className={`flex h-full flex-col gap-2.5 p-4 transition-shadow hover:shadow-[var(--shadow-md)] ${hl ? "ring-2 ring-primary" : ""}`}>
+      <Card className={`relative flex h-full flex-col gap-2.5 overflow-hidden p-4 transition-transform duration-300 hover:-translate-y-1 ${hl ? "ring-2 ring-primary" : ""}`}><span aria-hidden className={`absolute inset-x-0 top-0 h-[3px] ${idea.source === "ia" ? "bg-[image:var(--grad-brand)]" : "bg-muted"}`} />
         <div className="flex items-start justify-between gap-2">
           <div className="flex flex-wrap gap-1.5">
             {idea.status === "en_produccion" && <Badge tone="success">En producción</Badge>}
@@ -120,7 +120,7 @@ function Ideas() {
         actions={<Button variant="brand" onClick={gen} disabled={busy === "gen"}><Sparkles />{busy === "gen" ? "Pensando…" : `Pedir ${s.prefs.ideasPerDay} ideas nuevas`}</Button>} />
       {conf && !conf.configured && <Card className="mb-3 flex items-start gap-3 border-brand/40 bg-brand/5 p-3 text-sm"><Plug className="mt-0.5 size-4 shrink-0 text-brand" /><p><b>La IA no está conectada.</b> Configura <code className="rounded bg-muted px-1">ANTHROPIC_API_KEY</code> para ideas reales con Claude Haiku. Mientras tanto salen plantillas marcadas como “Plantilla”.</p></Card>}
       <p className="mb-3 text-xs text-muted-foreground"><Plug className="mr-1.5 inline size-3.5 align-text-bottom" />Fuentes de tendencias: <b className="text-foreground">no conectadas</b>. Las ideas no afirman tendencias; se basan en fechas, productos y tus publicaciones.{conf?.configured && <span className="ml-2">· IA: {conf.model}</span>}</p>
-      <Tabs value={tab} onValueChange={setTab} className="mb-4"><TabsList><TabsTrigger value="hoy">Hoy</TabsTrigger><TabsTrigger value="fav">Favoritas ({all.filter((i) => i.favorite).length})</TabsTrigger><TabsTrigger value="todas">Todas ({all.length})</TabsTrigger></TabsList></Tabs>
+      <div className="mb-4"><Seg id="ideas" value={tab} onChange={setTab} items={[{ id: "hoy", label: "Hoy" }, { id: "fav", label: `Favoritas (${all.filter((i) => i.favorite).length})` }, { id: "todas", label: `Todas (${all.length})` }]} /></div>
       {list.length === 0 ? <EmptyState icon={Sparkles} title={tab === "hoy" ? "Hoy aún no hay ideas" : "Nada por aquí todavía"} text="Pide ideas a la IA o guarda tus favoritas con el corazón." action={<Button variant="brand" onClick={gen} disabled={busy === "gen"}>Pedir ideas</Button>} /> : (
         <div className="grid gap-3.5 md:grid-cols-2 2xl:grid-cols-3">{list.map((i) => <Tile key={i.id} idea={i} hl={hlId === i.id} altBusy={busy === i.id} onDebate={() => { setDebate(i.id); setPending(null); setChatErr(""); }} onAlt={() => alternatives(i)} />)}</div>
       )}

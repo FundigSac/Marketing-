@@ -50,21 +50,21 @@ export function IdeaActions({ idea, compact, onView }: { idea: Idea; compact?: b
   };
   const toTask = () => { const id = ideaToTask(idea.id, me.id); toast.success("Convertida en video", { action: { label: "Abrir", onClick: () => router.push(`/videos?tarea=${id}`) } }); };
 
-  const B = ({ icon: Icon, label, onClick, variant = "outline", href }: { icon: typeof Eye; label: string; onClick?: () => void; variant?: "outline" | "brand" | "soft" | "ghost"; href?: string }) =>
+  const B = ({ icon: Icon, label, short, onClick, variant = "outline", href }: { icon: typeof Eye; label: string; short?: string; onClick?: () => void; variant?: "outline" | "brand" | "soft" | "ghost"; href?: string }) =>
     compact ? (
       <Button size="icon" variant="ghost" title={label} aria-label={label} onClick={onClick} asChild={!!href} className="size-8">{href ? <Link href={href}><Icon /></Link> : <Icon />}</Button>
     ) : (
-      <Button size="sm" variant={variant} onClick={onClick} asChild={!!href}>{href ? <Link href={href}><Icon />{label}</Link> : <><Icon />{label}</>}</Button>
+      <Button size="sm" variant={variant} onClick={onClick} asChild={!!href} title={label} aria-label={label}>{href ? <Link href={href}><Icon />{short ?? label}</Link> : <><Icon />{short ?? label}</>}</Button>
     );
 
   return (
     <>
       <div className={compact ? "flex items-center gap-0.5" : "flex flex-wrap gap-2"}>
-        {onView ? <B icon={Eye} label="Ver idea" onClick={onView} /> : <B icon={Eye} label="Ver idea" href={`/ideas?idea=${idea.id}`} />}
-        <B icon={Wand2} label="Mejorar con IA" onClick={() => open("improve")} />
-        <B icon={FileText} label="Crear guion" onClick={() => open("script")} />
+        {onView ? <B icon={Eye} label="Ver idea" short="Ver" onClick={onView} /> : <B icon={Eye} label="Ver idea" short="Ver" href={`/ideas?idea=${idea.id}`} />}
+        <B icon={Wand2} label="Mejorar con IA" short="Mejorar" onClick={() => open("improve")} />
+        <B icon={FileText} label="Crear guion" short="Guion" onClick={() => open("script")} />
         <B icon={CalendarCheck} label="Programar" onClick={() => { setDate(idea.date && idea.date >= todayLima() ? idea.date : addDays(todayLima(), 14)); open("schedule"); }} />
-        {task ? <B icon={Clapperboard} label="Ver video" href={`/videos?tarea=${task.id}`} variant="soft" /> : <B icon={Clapperboard} label="Convertir en tarea" onClick={toTask} variant="brand" />}
+        {task ? <B icon={Clapperboard} label="Ver video" href={`/videos?tarea=${task.id}`} variant="soft" /> : <B icon={Clapperboard} label="Convertir en tarea" short="Convertir en tarea" onClick={toTask} variant="brand" />}
       </div>
 
       <Dialog open={mode === "improve" || mode === "script"} onOpenChange={(o) => !o && setMode("")}>

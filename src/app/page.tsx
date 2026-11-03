@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { motion } from "motion/react";
 import { CalendarClock, CalendarPlus, Clapperboard, Heart, Plus, Sparkles, Wand2 } from "lucide-react";
 import { Badge, Button, Card, Dialog, DialogContent, Progress } from "@/components/ui/primitives";
-import { EmptyState, Item, PageSkeleton, Ring, Stagger } from "@/components/ui/blocks";
+import { CountUp, EmptyState, Item, PageSkeleton, Ring, Stagger } from "@/components/ui/blocks";
 import { IdeaActions } from "@/components/idea-actions";
 import { TaskDialog } from "@/components/task-dialog";
 import { generateIdeas } from "@/lib/actions";
@@ -67,19 +67,25 @@ export default function Inicio() {
 
   return (
     <>
-      <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }} className="liquid relative mb-4 overflow-hidden rounded-2xl p-5 md:p-6">
-        <div aria-hidden className="pointer-events-none absolute -right-16 -top-24 size-64 rounded-full bg-brand/15 blur-3xl" />
-        <div aria-hidden className="pointer-events-none absolute -bottom-24 left-1/3 size-64 rounded-full bg-primary/15 blur-3xl" />
-        <div className="relative flex flex-wrap items-center justify-between gap-5">
-          <div className="min-w-0 max-w-xl">
-            <p className="text-xs text-muted-foreground">{longDate.charAt(0).toUpperCase() + longDate.slice(1)}</p>
-            <h1 className="mt-0.5 text-2xl font-semibold tracking-tight md:text-3xl">{greeting()}, {me.name.split(" ")[0]} <span aria-hidden>👋</span></h1>
-            <p className="mt-1.5 text-sm text-muted-foreground md:text-base">{line}</p>
-            <Button variant="brand" size="lg" className="mt-4" onClick={() => setCreate(true)}><Plus />Crear contenido</Button>
+      <motion.section initial={{ opacity: 0, y: 14, filter: "blur(6px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }} className="gborder relative mb-5 overflow-hidden rounded-3xl border border-border bg-card/80 p-6 shadow-[var(--shadow-md)] md:p-8">
+        <div aria-hidden className="bg-grid pointer-events-none absolute inset-0 opacity-70" />
+        <div aria-hidden className="pointer-events-none absolute -right-20 -top-28 size-80 rounded-full bg-brand/20 blur-3xl" style={{ animation: "float-y 9s ease-in-out infinite" }} />
+        <div aria-hidden className="pointer-events-none absolute -bottom-32 left-1/4 size-80 rounded-full bg-primary/20 blur-3xl" style={{ animation: "float-y 11s ease-in-out infinite reverse" }} />
+        <div className="relative grid items-center gap-6 lg:grid-cols-[1fr_auto]">
+          <div className="min-w-0 max-w-2xl">
+            <motion.span initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }} className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/80 px-3 py-1 text-xs font-medium text-muted-foreground shadow-[var(--shadow-sm)]"><Sparkles className="size-3.5 text-brand" />Briefing de hoy · {longDate.charAt(0).toUpperCase() + longDate.slice(1)}</motion.span>
+            <h1 className="mt-3 text-4xl font-semibold leading-[1.05] tracking-tight md:text-5xl">{greeting()},<br /><span className="text-gradient">{me.name.split(" ")[0]}</span> <span aria-hidden className="inline-block origin-[70%_70%]" style={{ animation: "float-y 3s ease-in-out infinite" }}>👋</span></h1>
+            <p className="mt-3 max-w-xl text-base text-muted-foreground md:text-lg">{line}</p>
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <Button variant="brand" size="lg" onClick={() => setCreate(true)} className="h-12 px-6 text-base"><Plus />Crear contenido</Button>
+              <div className="flex flex-wrap gap-2 text-xs">
+                {[["Ideas listas", d.ideas.length + (ideasForNext && !d.ideas.length ? ideasForNext : 0)], ["Videos en curso", d.pendingCount], ["Atrasados", overdue]].map(([l, n]) => <span key={String(l)} className="rounded-full border border-border bg-card/80 px-3 py-1.5 shadow-[var(--shadow-sm)]"><b className="tabular-nums text-foreground"><CountUp value={Number(n)} /></b> <span className="text-muted-foreground">{l}</span></span>)}
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-5 rounded-xl border border-border bg-card/70 px-5 py-3">
-            {([["Semana", d.week, "var(--brand)"], ["Mes", d.month, "var(--primary)"]] as const).map(([l, p, tone]) => (
-              <div key={l} className="flex items-center gap-3"><Ring pct={p.pct} size={64} stroke={7} tone={tone}><b className="text-sm tabular-nums">{p.total ? `${p.pct}%` : "—"}</b></Ring><div className="text-xs leading-tight"><b className="block text-sm">{l}</b><span className="text-muted-foreground">{p.total ? `${p.done}/${p.total} aprobados` : "sin entregas"}</span></div></div>
+          <div className="flex items-center gap-6 rounded-2xl border border-border bg-card/70 p-5 shadow-[var(--shadow-sm)] backdrop-blur">
+            {([["Semana", d.week, "var(--brand)"], ["Mes", d.month, "var(--primary)"]] as const).map(([l, p2, tone]) => (
+              <div key={l} className="flex flex-col items-center gap-2 text-center"><Ring pct={p2.pct} size={92} stroke={9} tone={tone}><b className="text-lg tabular-nums">{p2.total ? `${p2.pct}%` : "—"}</b></Ring><div className="text-xs leading-tight"><b className="block text-sm">{l}</b><span className="text-muted-foreground">{p2.total ? `${p2.done}/${p2.total} aprobados` : "sin entregas"}</span></div></div>
             ))}
           </div>
         </div>
@@ -90,8 +96,8 @@ export default function Inicio() {
           <Card className="h-full p-4">
             <div className="mb-3 flex items-center justify-between"><h2 className="flex items-center gap-2 text-sm font-semibold"><Sparkles className="size-4 text-brand" />Ideas recomendadas por la IA</h2><Link href="/ideas" className="text-xs text-primary hover:underline">Ver todas</Link></div>
             {d.ideas.length === 0 ? <EmptyState icon={Sparkles} title="Aún no hay ideas" text="La IA propone 3 a 5 ideas por día según tus fechas y productos HDPE." action={<Button size="sm" variant="brand" onClick={() => ask()} disabled={busy === "gen"}><Wand2 />{busy === "gen" ? "Pensando…" : "Generar ideas"}</Button>} /> : (
-              <ul className="space-y-2.5">{d.ideas.map((i) => (
-                <li key={i.id} className="rounded-xl border border-border p-3.5 transition hover:shadow-[var(--shadow-md)]">
+              <ul className="space-y-2.5">{d.ideas.map((i, k) => (
+                <li key={i.id} className="group relative overflow-hidden rounded-2xl border border-border bg-card/60 p-3.5 pl-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]"><span aria-hidden className="absolute inset-y-0 left-0 w-1 bg-[image:var(--grad-brand)] opacity-70 transition-opacity group-hover:opacity-100" /><span aria-hidden className="absolute right-3 top-2 text-5xl font-black leading-none text-foreground/[0.05]">{String(k + 1).padStart(2, "0")}</span>
                   <div className="flex items-start gap-3">
                     <div className="min-w-0 flex-1">
                       <Link href={`/ideas?idea=${i.id}`} className="line-clamp-1 font-medium hover:text-primary">{i.title}</Link>
