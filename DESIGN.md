@@ -3,6 +3,12 @@
 Objetivo: una interfaz limpia, fácil de entender y fácil de mejorar. Referencias (21st.dev y práctica de Linear/Notion):
 Kanban *Arunjdass* y *uvain* (columnas grises suaves, tarjetas blancas con etiquetas pequeñas), *Dashboard Sidebar* y *ShadcnStore App Dashboard* (barra lateral plana, encabezado simple).
 
+## Estructura
+
+- Navegación en una isla flotante arriba (escritorio) y una isla abajo (móvil); sin barra lateral. Ref. 21st.dev "Morphing Island Navbar".
+- Inicio e Ideas en una sola columna (máx. 768 px), contenido en filas separadas por líneas finas, sin cuadrículas de tarjetas. Ref. 21st.dev "Inbox Calendar".
+- Videos y Calendario usan un contenedor más ancho (máx. 1152 px) porque necesitan columnas.
+
 ## Reglas
 1. **Superficies planas**: fondo `--background`, tarjetas `--card` con borde fino (`--border`) y sombra mínima.
 2. **Un solo color de acción**: azul `--primary` (botón principal, elemento activo). El naranja (`--brand`) solo para detalles de marca (avisos, "hoy").

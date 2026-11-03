@@ -8,11 +8,11 @@ import { cn } from "@/lib/utils";
 export function PageHeader({ title, hint, actions, eyebrow }: { title: string; hint?: string; actions?: React.ReactNode; eyebrow?: string }) {
   return (
     <motion.header initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-      className="mb-6 flex flex-wrap items-end justify-between gap-4">
+      className="mb-12 flex flex-wrap items-end justify-between gap-4">
       <div>
         {eyebrow && <p className="mb-1 text-xs font-medium text-muted-foreground">{eyebrow}</p>}
-        <h1 className="text-gradient text-3xl font-semibold tracking-tight">{title}</h1>
-        {hint && <p className="mt-2 max-w-2xl text-[15px] text-muted-foreground">{hint}</p>}
+        <h1 className="text-4xl font-semibold tracking-[-0.03em]">{title}</h1>
+        {hint && <p className="mt-3 max-w-2xl text-base text-muted-foreground">{hint}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </motion.header>

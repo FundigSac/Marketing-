@@ -30,7 +30,7 @@ function Tile({ idea, hl, onDebate, onAlt, altBusy }: { idea: Idea; hl: boolean;
   const scenes = (blocks.length > 1 ? blocks : idea.script.split("\n")).map((b) => b.trim()).filter(Boolean);
   return (
     <motion.div ref={ref} layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}>
-      <Card className={`surface-hover flex h-full flex-col gap-4 p-5 ${hl ? "ring-2 ring-brand" : ""}`}>
+      <article className={`flex flex-col gap-4 border-b border-border py-8 first:pt-4 ${hl ? "-mx-4 rounded-2xl bg-brand/[0.06] px-4" : ""}`}>
         <div className="flex items-start justify-between gap-2">
           <div className="flex flex-wrap gap-1.5">
             {idea.status === "en_produccion" && <Badge tone="success">En producción</Badge>}
@@ -41,21 +41,21 @@ function Tile({ idea, hl, onDebate, onAlt, altBusy }: { idea: Idea; hl: boolean;
           <button aria-label={idea.favorite ? "Quitar de favoritas" : "Guardar como favorita"} aria-pressed={idea.favorite} onClick={() => set((i) => { i.favorite = !i.favorite; })} className={`-mr-1 rounded-md p-1 transition active:scale-90 ${idea.favorite ? "text-brand" : "text-muted-foreground hover:text-foreground"}`}><Heart className={`size-5 ${idea.favorite ? "fill-current" : ""}`} /></button>
         </div>
         <div className="space-y-2">
-          <h3 className="text-base font-semibold leading-snug">{idea.title}</h3>
+          <h3 className="text-xl font-semibold leading-snug tracking-tight">{idea.title}</h3>
           <p className="text-sm leading-relaxed text-muted-foreground">{idea.concept}</p>
         </div>
         <div className="flex flex-wrap gap-1.5"><Badge tone="primary">{pname || "Producto por definir"}</Badge><Badge><Clock className="size-3" />{idea.duration}</Badge><Badge>{idea.platform}</Badge></div>
         {open && <div className="space-y-3 rounded-lg bg-muted p-4 text-sm leading-relaxed">{scenes.map((p, k) => <p key={k}>{p}</p>)}</div>}
         {idea.why && <p className="text-xs leading-relaxed text-muted-foreground"><span className="font-medium text-foreground">Por qué funciona:</span> {idea.why}</p>}
         {task && <IdeaProgress task={task} />}
-        <div className="mt-auto pt-1">
+        <div className="pt-1">
           <IdeaActions idea={idea} onView={() => setOpen((o) => !o)} extra={<>
             <MenuItem icon={MessagesSquare} onClick={onDebate}>Conversar con la IA</MenuItem>
             <MenuItem icon={Repeat2} onClick={onAlt}>{altBusy ? "Buscando alternativas…" : "Pedir alternativas"}</MenuItem>
             {idea.status !== "en_produccion" && <MenuItem icon={X} danger onClick={() => set((i) => { i.status = "descartada"; }, `Descartó la idea "${idea.title}"`)}>Descartar</MenuItem>}
           </>} />
         </div>
-      </Card>
+      </article>
     </motion.div>
   );
 }
@@ -129,7 +129,7 @@ function Ideas() {
       <p className="mb-3 text-xs text-muted-foreground"><Plug className="mr-1.5 inline size-3.5 align-text-bottom" />Fuentes de tendencias: <b className="text-foreground">no conectadas</b>. Las ideas no afirman tendencias; se basan en fechas, productos y tus publicaciones.{conf?.configured && <span className="ml-2">· IA: {conf.model}</span>}</p>
       <div className="mb-4"><Seg id="ideas" value={tab} onChange={setTab} items={[{ id: "hoy", label: "Hoy" }, { id: "fav", label: `Favoritas (${all.filter((i) => i.favorite).length})` }, { id: "todas", label: `Todas (${all.length})` }]} /></div>
       {list.length === 0 ? <EmptyState icon={Sparkles} title={tab === "hoy" ? "Hoy aún no hay ideas" : "Nada por aquí todavía"} text="Pide ideas a la IA o guarda tus favoritas con el corazón." action={<Button variant="brand" onClick={gen} disabled={busy === "gen"}>Pedir ideas</Button>} /> : (
-        <div className="grid gap-3.5 md:grid-cols-2 2xl:grid-cols-3">{list.map((i) => <Tile key={i.id} idea={i} hl={hlId === i.id} altBusy={busy === i.id} onDebate={() => { setDebate(i.id); setPending(null); setChatErr(""); }} onAlt={() => alternatives(i)} />)}</div>
+        <div>{list.map((i) => <Tile key={i.id} idea={i} hl={hlId === i.id} altBusy={busy === i.id} onDebate={() => { setDebate(i.id); setPending(null); setChatErr(""); }} onAlt={() => alternatives(i)} />)}</div>
       )}
 
       <Dialog open={!!di} onOpenChange={(o) => !o && setDebate(null)}>

@@ -6,7 +6,7 @@ import { useTheme } from "next-themes";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
-import { Bell, FlaskConical, Moon, PanelLeftClose, PanelLeftOpen, Search, Sparkles, Sun } from "lucide-react";
+import { Bell, FlaskConical, Moon, Search, Sparkles, Sun } from "lucide-react";
 import { NAV } from "@/lib/nav";
 import { update, useMe } from "@/lib/store";
 import { deriveAlerts } from "@/lib/alerts";
@@ -14,7 +14,7 @@ import { generateIdeas } from "@/lib/actions";
 import { todayLima } from "@/lib/utils";
 import { localNotify } from "@/lib/notify";
 import { ROLE_LABEL } from "@/lib/types";
-import { Button, Select } from "@/components/ui/primitives";
+import { Select } from "@/components/ui/primitives";
 import { CommandPalette } from "@/components/command-palette";
 import { AiAssistant } from "@/components/ai-assistant";
 import { NotificationsSheet } from "@/components/notifications-sheet";
@@ -32,12 +32,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [sheet, setSheet] = useState<{ open: boolean; tab: string }>({ open: false, tab: "avisos" });
   const [mounted, setMounted] = useState(false);
   const [adminTools, setAdminTools] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     try {
-      setCollapsed(localStorage.getItem("sidebar-collapsed") === "1");
       // El selector "Ver como" y la etiqueta técnica solo los ve el revisor. Se activan con ?admin=1 (y se recuerdan en este navegador).
       const q = new URLSearchParams(location.search).get("admin");
       if (q === "1") localStorage.setItem("studio-admin", "1");
@@ -80,69 +78,64 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const alerts = useMemo(() => (ready ? deriveAlerts(s, todayLima()) : []), [s, ready]);
   const showTools = me?.role === "reviewer" || adminTools;
   const urgent = alerts.filter((a) => a.level !== "info").length;
-  const W = collapsed ? 64 : 224;
+  const wide = path.startsWith("/videos") || path.startsWith("/calendario");
 
   return (
     <div className="min-h-dvh">
-      {/* Barra lateral (escritorio) */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border bg-background/80 backdrop-blur transition-[width] duration-200 lg:flex" style={{ width: W }} aria-label="Barra lateral">
-        <Link href="/" aria-label="FUNDIGSAC · Inicio" className={`flex h-14 shrink-0 items-center border-b border-border ${collapsed ? "justify-center" : "px-4"}`}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          {collapsed ? <img src="/icon-64.png" alt="FUNDIGSAC" className="size-8 rounded-lg" /> : <img src="/logo.png" alt="FUNDIGSAC" className="h-8 w-auto" />}
-        </Link>
-        <nav className="flex-1 space-y-0.5 p-2.5" aria-label="Principal">
-          {NAV.map(({ label, href, icon: Icon, key }) => {
-            const active = isActive(path, href);
-            return (
-              <Link key={href} href={href} title={label} aria-current={active ? "page" : undefined} className={`relative flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${collapsed ? "justify-center" : ""} ${active ? "text-foreground" : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"}`}>
-                {active && <motion.span layoutId="nav-active" className="absolute inset-0 rounded-lg border border-border bg-accent shadow-[inset_0_1px_0_color-mix(in_srgb,var(--foreground)_6%,transparent)]" transition={{ type: "spring", stiffness: 600, damping: 45 }}><span className="absolute inset-y-2 -left-2.5 w-[3px] rounded-r-full bg-brand" /></motion.span>}
-                <Icon className="relative size-[18px] shrink-0" />
-                {!collapsed && <span className="relative">{label}</span>}
-                {!collapsed && <kbd className="relative ml-auto hidden text-[10px] font-normal text-muted-foreground/60 xl:block">g {key}</kbd>}
-              </Link>
-            );
-          })}
-        </nav>
-        <div className={`flex shrink-0 border-t border-border p-2.5 ${collapsed ? "justify-center" : "justify-end"}`}>
-          <Button variant="ghost" size="icon" onClick={() => setCollapsed((c) => { try { localStorage.setItem("sidebar-collapsed", c ? "0" : "1"); } catch {} return !c; })} aria-label={collapsed ? "Expandir barra lateral" : "Plegar barra lateral"}>{collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}</Button>
-        </div>
-      </aside>
-
-      <div style={{ "--rail": `${W}px` } as React.CSSProperties} className="flex min-h-dvh min-w-0 flex-col transition-[padding] duration-200 lg:pl-[var(--rail)]">
-        <header className="topbar sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-border bg-background/85 px-4 backdrop-blur lg:px-6">
-          <Link href="/" className="lg:hidden" aria-label="Inicio">{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/icon-64.png" alt="FUNDIGSAC" className="size-8 rounded-lg" /></Link>
-          <button onClick={() => setPalette(true)} className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-lg border border-border bg-card px-3 text-left text-sm text-muted-foreground transition-colors hover:border-input sm:max-w-xs">
-            <Search className="size-4 shrink-0" /><span className="truncate">Buscar…</span><kbd className="ml-auto hidden rounded border border-border px-1.5 text-[10px] sm:block">Ctrl K</kbd>
-          </button>
-          <div className="ml-auto flex items-center gap-1">
-            {ready && showTools && !remoteEnabled && <span title="Los datos viven solo en este navegador. Conecta Supabase para compartirlos." className="hidden items-center gap-1 rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground md:flex"><FlaskConical className="size-3.5" />Modo local</span>}
+      {/* Isla flotante (ref. 21st.dev "Morphing Island Navbar"): marca, secciones y acciones en una sola píldora. */}
+      <header className="topbar sticky top-0 z-30 px-3 pt-3 sm:pt-4">
+        <div className="mx-auto flex h-14 max-w-5xl items-center gap-1 rounded-full border border-border bg-card/80 p-1.5 pl-2 shadow-[var(--shadow-md)] backdrop-blur-xl">
+          <Link href="/" aria-label="FUNDIGSAC · Inicio" className="flex shrink-0 items-center gap-2 rounded-full pr-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/icon-64.png" alt="" className="size-9 rounded-full" />
+            <span className="hidden text-sm font-semibold tracking-tight md:block">FUNDIGSAC</span>
+          </Link>
+          <nav className="mx-auto hidden items-center gap-0.5 md:flex" aria-label="Principal">
+            {NAV.map(({ label, href, icon: Icon }) => {
+              const active = isActive(path, href);
+              return (
+                <Link key={href} href={href} aria-current={active ? "page" : undefined} className={`relative flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors ${active ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                  {active && <motion.span layoutId="nav-island" className="absolute inset-0 rounded-full bg-accent" transition={{ type: "spring", stiffness: 500, damping: 40 }} />}
+                  <Icon className="relative size-4" /><span className="relative">{label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="ml-auto flex items-center gap-0.5 md:ml-0">
+            {ready && showTools && !remoteEnabled && <span title="Los datos viven solo en este navegador. Conecta Supabase para compartirlos." className="hidden items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground xl:flex"><FlaskConical className="size-3.5" />Local</span>}
             {ready && showTools && (
-              <Select aria-label="Ver como" value={s.currentUserId} onChange={(e) => update((x) => { x.currentUserId = e.target.value; })} className="h-9 w-auto max-w-40 py-0 text-xs">
+              <Select aria-label="Ver como" value={s.currentUserId} onChange={(e) => update((x) => { x.currentUserId = e.target.value; })} className="h-9 w-auto max-w-32 rounded-full py-0 text-xs">
                 {s.users.filter((u) => u.active).map((u) => <option key={u.id} value={u.id}>{u.name} · {ROLE_LABEL[u.role]}</option>)}
               </Select>
             )}
-            <Button variant="outline" size="sm" onClick={() => setAiOpen(true)} aria-label="Abrir copiloto de IA" className="gap-1.5"><Sparkles className="text-brand" /><span className="hidden sm:inline">Copiloto</span></Button>
-            <Button variant="ghost" size="icon" onClick={() => setSheet({ open: true, tab: "avisos" })} aria-label="Avisos" className="relative">
+            <IconBtn label="Buscar (Ctrl K)" onClick={() => setPalette(true)}><Search /></IconBtn>
+            <IconBtn label="Copiloto de IA" onClick={() => setAiOpen(true)}><Sparkles className="text-brand" /></IconBtn>
+            <IconBtn label="Avisos" onClick={() => setSheet({ open: true, tab: "avisos" })}>
               <Bell />
-              {urgent > 0 && <span className="absolute right-1 top-1 grid min-w-4 place-items-center rounded-full bg-brand px-1 text-[10px] font-semibold leading-4 text-brand-foreground">{urgent}</span>}
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")} aria-label="Cambiar tema">{mounted && resolvedTheme === "dark" ? <Sun /> : <Moon />}</Button>
+              {urgent > 0 && <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-brand ring-2 ring-card" aria-label={`${urgent} avisos`} />}
+            </IconBtn>
+            <IconBtn label="Cambiar tema" onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}>{mounted && resolvedTheme === "dark" ? <Sun /> : <Moon />}</IconBtn>
           </div>
-        </header>
-        <main className="mx-auto w-full max-w-[1200px] flex-1 px-4 py-6 pb-28 lg:px-8 lg:pb-12"><motion.div key={path} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}>{children}</motion.div></main>
-      </div>
+        </div>
+      </header>
 
-      {/* Navegación inferior (móvil / tablet) */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden" aria-label="Navegación móvil">
-        {NAV.map(({ short, href, icon: Icon }) => {
-          const active = isActive(path, href);
-          return (
-            <Link key={href} href={href} aria-current={active ? "page" : undefined} className={`relative flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium transition-colors ${active ? "text-foreground" : "text-muted-foreground"}`}>
-              {active && <motion.span layoutId="tab-active" className="absolute inset-x-6 top-0 h-0.5 rounded-b bg-brand" transition={{ type: "spring", stiffness: 600, damping: 45 }} />}
-              <Icon className="size-5" />{short}
-            </Link>
-          );
-        })}
+      <main className={`mx-auto w-full flex-1 px-4 pb-32 pt-10 sm:px-6 md:pb-16 md:pt-14 ${wide ? "max-w-6xl" : "max-w-3xl"}`}>
+        <motion.div key={path} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}>{children}</motion.div>
+      </main>
+
+      {/* Isla inferior en móvil */}
+      <nav className="fixed inset-x-0 bottom-0 z-30 flex justify-center px-4 pb-[max(12px,env(safe-area-inset-bottom))] md:hidden" aria-label="Navegación móvil">
+        <div className="flex w-full max-w-sm items-center justify-between rounded-full border border-border bg-card/85 p-1.5 shadow-[var(--shadow-lg)] backdrop-blur-xl">
+          {NAV.map(({ short, href, icon: Icon }) => {
+            const active = isActive(path, href);
+            return (
+              <Link key={href} href={href} aria-current={active ? "page" : undefined} aria-label={short} className={`relative flex h-11 flex-1 items-center justify-center gap-1.5 rounded-full text-xs font-medium transition-colors ${active ? "text-foreground" : "text-muted-foreground"}`}>
+                {active && <motion.span layoutId="tab-island" className="absolute inset-0 rounded-full bg-accent" transition={{ type: "spring", stiffness: 500, damping: 40 }} />}
+                <Icon className="relative size-[18px]" />{active && <span className="relative">{short}</span>}
+              </Link>
+            );
+          })}
+        </div>
       </nav>
 
       <CommandPalette open={palette} setOpen={setPalette} onAssistant={() => { setPalette(false); setAiOpen(true); }} />
@@ -150,4 +143,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <NotificationsSheet open={sheet.open} onOpenChange={(o) => setSheet((p) => ({ ...p, open: o }))} tab={sheet.tab} />
     </div>
   );
+}
+
+function IconBtn({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
+  return <button type="button" aria-label={label} title={label} onClick={onClick} className="relative grid size-10 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground [&_svg]:size-[18px]">{children}</button>;
 }
